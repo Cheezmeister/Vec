@@ -1,70 +1,9 @@
 #include <iostream>
-
 #include <ctime>
 #include <GL/glew.h>
-#include "/usr/local/Cellar/sdl2/2.0.3/include/SDL2/SDL.h"
 #include <OpenGL/gl.h>
-
-#define DEBUGVAR(x) cout << #x " is " << x << endl;
-#define log std::cout
-
-// Adapted from arsynthesis.org/gltut
-namespace arcsynthesis {
-
-    GLuint CreateShader(GLenum eShaderType, const char* strFileData)
-    {
-        GLuint shader = glCreateShader(eShaderType);
-        glShaderSource(shader, 1, &strFileData, NULL);
-
-        glCompileShader(shader);
-
-        GLint status;
-        glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
-        if (status == GL_FALSE)
-        {
-            GLint infoLogLength;
-            glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLogLength);
-
-            GLchar *strInfoLog = new GLchar[infoLogLength + 1];
-            glGetShaderInfoLog(shader, infoLogLength, NULL, strInfoLog);
-
-            const char *strShaderType = eShaderType == GL_VERTEX_SHADER ? "vertex" : "fragment";
-            fprintf(stderr, "Compile failure in %s shader:\n%s\n", strShaderType, strInfoLog);
-            delete[] strInfoLog;
-        }
-
-        return shader;
-    }
-
-
-    GLuint CreateProgram(GLuint vertex, GLuint fragment)
-    {
-        GLuint program = glCreateProgram();
-
-        glAttachShader(program, vertex);
-        glAttachShader(program, fragment);
-
-        glLinkProgram(program);
-
-        GLint status;
-        glGetProgramiv (program, GL_LINK_STATUS, &status);
-        if (status == GL_FALSE)
-        {
-            GLint infoLogLength;
-            glGetProgramiv(program, GL_INFO_LOG_LENGTH, &infoLogLength);
-
-            GLchar *strInfoLog = new GLchar[infoLogLength + 1];
-            glGetProgramInfoLog(program, infoLogLength, NULL, strInfoLog);
-            fprintf(stderr, "Linker failure: %s\n", strInfoLog);
-            delete[] strInfoLog;
-        }
-
-        glDetachShader(program, vertex);
-        glDetachShader(program, fragment);
-
-        return program;
-    }
-}
+#include "/usr/local/Cellar/sdl2/2.0.3/include/SDL2/SDL.h"
+#include "bml.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 using namespace std;
@@ -73,43 +12,16 @@ typedef struct _Args {
     bool debug;
 } Args;
 
-typedef struct _Input {
-    bool quit;
-    float left;
-    float right;
-    float up;
-    float down;
-} Input;
-
-typedef struct _GameState {
-    struct _Player {
-      struct _Pos {
-        float x;
-        float y;
-      } pos;
-    } player;
-} GameState;
-
-typedef union Vertex {
-    float a[4];
-    struct {
-      float x;
-      float y;
-      float z;
-      float w;
-    };
-} Vertex;
-
-template<int N>
-union VertexBuffer {
-  float flat[4 * N];
-  Vertex v[N];
-};
+typedef struct _Dimension2 {
+  float x;
+  float y;
+} Dimension2;
 
 
-
+// Ugly nasty globals
 SDL_Window* win;
 Args args;
+Dimension2 viewport;
 
 int parse_args(int argc, char** argv, Args* outArgs)
 {
@@ -129,127 +41,83 @@ int parse_args(int argc, char** argv, Args* outArgs)
 
 Input handle_input()
 {
-    SDL_Event event;
     Input ret;
+
+    // Poll events
+    SDL_Event event;
     while (SDL_PollEvent(&event) )
     {
         if (event.type == SDL_QUIT) ret.quit = true;
         if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE) ret.quit = true;
+        if (event.type == SDL_WINDOWEVENT)
+        {
+            if (event.window.event == SDL_WINDOWEVENT_RESIZED)
+            {
+                int x = event.window.data1;
+                int y = event.window.data2;
+                viewport.x = x;
+                viewport.y = x;
+                int max = x > y ? x : y;
+                glViewport(0, 0, max, max);
+            }
+        }
     }
+
+    // Poll mouse
+    struct _Mouse {
+        Uint8 buttons;
+        int x;
+        int y;
+    } mouse;
+    mouse.buttons = SDL_GetMouseState(&mouse.x, &mouse.y);
+
+    ret.shoot = (mouse.buttons & SDL_BUTTON(1));
+    ret.axes.x2 = mouse.x * 2.0 / viewport.x - 1.0;
+    ret.axes.y2 = mouse.y * 2.0 / viewport.y - 1.0;
+    ret.axes.y2 *= -1;
+
+
+    // Poll keyboard
     const Uint8* keystate = SDL_GetKeyboardState(NULL);
-    ret.up = (keystate[SDL_SCANCODE_UP]);
-    ret.down = (keystate[SDL_SCANCODE_DOWN]);
-    ret.left = (keystate[SDL_SCANCODE_LEFT]);
-    ret.right = (keystate[SDL_SCANCODE_RIGHT]);
+    ret.axes.y1  = 1.0 * (keystate[SDL_SCANCODE_UP]);
+    ret.axes.y1 -= 1.0 * (keystate[SDL_SCANCODE_DOWN]);
+    ret.axes.x1  = 1.0 * (keystate[SDL_SCANCODE_RIGHT]);
+    ret.axes.x1 -= 1.0 * (keystate[SDL_SCANCODE_LEFT]);
     return ret;
 }
 
-void check_error(const string& message)
-{
-    GLenum error = glGetError();
-    if (error || args.debug)
-    {
-        log << message << " reported error: " << error << endl;
-    }
-}
-
-GLuint make_shader()
-{
-    GLuint vertex = arcsynthesis::CreateShader(GL_VERTEX_SHADER,
-                    "#version 120  \n"
-                    "attribute vec4 inPos; \n"
-                    "varying vec4 glPos; \n"
-                    "void main() { \n"
-                    "  gl_Position = glPos = (inPos); \n"
-                    "} \n"
-    );
-    GLuint fragment = arcsynthesis::CreateShader(GL_FRAGMENT_SHADER,
-                      "#version 120 \n"
-                      /* "out vec3 color; \n" */
-                      "varying vec4 glPos; \n"
-                      "void main() { \n"
-                      "  vec3 c = cross(vec3(1, 0, 0), vec3(glPos.x, glPos.y, 0)); \n"
-                      "  float green = length(c); \n"
-                      "  gl_FragColor = vec4(glPos.x,green,glPos.y,0); \n"
-                      "} \n"
-    );
-    GLuint program = arcsynthesis::CreateProgram(vertex, fragment);
-    return program;
-}
-
-GLuint vbo;
-GLuint shader;
-void render(GameState state)
-{
-    // Clear
-    glClear(GL_COLOR_BUFFER_BIT);
-    check_error("clearing to blue");
-
-    // Render
-    glUseProgram(shader);                                   check_error("binding shader");
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);                     check_error("binding buf");
-    glEnableVertexAttribArray(0);                           check_error("enabling vaa");
-    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);  check_error("calling vap");
-    glDrawArrays(GL_TRIANGLES, 0, 3);                       check_error("drawing arrays");
-    glDisableVertexAttribArray(0);                          check_error("disabling vaa");
-
-    // Commit
-    SDL_GL_SwapWindow(win);
-
-}
-
-void update_vbo(VertexBuffer<3> vertexPositions, GLuint which)
-{
-    glBindBuffer(GL_ARRAY_BUFFER, which);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertexPositions.flat), vertexPositions.flat, GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-}
 
 void loop()
 {
-    // Set up VBO
-    VertexBuffer<3> vertexPositions = {
-        0.75f, 0.75f, 0.0f, 1.0f,
-        0.75f, -0.75f, 0.0f, 1.0f,
-        -0.75f, -0.75f, 0.0f, 1.0f,
-    };
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertexPositions), vertexPositions.flat, GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
 
+    gfx::init();
+    game::init();
 
-    // Init shaders
-    shader = make_shader();
-
-    // Misc setup
-    glClearColor(0.0f, 1.0f, 1.0f, 0.0f);
-    check_error("clearcolor");
-
-    GameState state;
+    GameState state = {0};
 
     while (true)
     {
+        // Timing
+        u32 ticks = SDL_GetTicks();
+
         // Input
         Input input = handle_input();
-
-        // Process input
         if (input.quit) break;
-        if (input.right)
-        {
-            state.player.pos.x += 0.05;
-        }
 
-        if (input.left)
-        {
-            state.player.pos.x -= 0.05;
-        }
+        // Process gameplay
+        game::update(state, input);
 
-        render(state);
+        // Render graphics
+        gfx::render(state, ticks);
 
-        SDL_Delay(50);
+        // Commit
+        SDL_GL_SwapWindow(win);
+
+        // Finish frame
+        SDL_Delay(20);
     }
 }
+
 void print_info()
 {
     SDL_version version;
@@ -264,7 +132,7 @@ void print_info()
     printf("GLEW version: %s\n", glewGetString(GLEW_VERSION));
 }
 
-int scratch() 
+int scratch()
 {
   return 0;
 }
@@ -281,6 +149,8 @@ int main ( int argc, char** argv )
         return 1;
     }
 
+    viewport.x = 200;
+    viewport.y = 200;
     win = SDL_CreateWindow("SDL2/GL4.3", 0, 0, 200, 200, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
     if (win == NULL)
     {
