@@ -80,9 +80,9 @@ Input handle_input()
     // Poll keyboard
     const Uint8* keystate = SDL_GetKeyboardState(NULL);
     ret.axes.y1  = 1.0 * (keystate[SDL_SCANCODE_W]);
-    ret.axes.y1 -= 1.0 * (keystate[SDL_SCANCODE_A]);
-    ret.axes.x1  = 1.0 * (keystate[SDL_SCANCODE_S]);
-    ret.axes.x1 -= 1.0 * (keystate[SDL_SCANCODE_D]);
+    ret.axes.y1 -= 1.0 * (keystate[SDL_SCANCODE_S]);
+    ret.axes.x1  = 1.0 * (keystate[SDL_SCANCODE_D]);
+    ret.axes.x1 -= 1.0 * (keystate[SDL_SCANCODE_A]);
     return ret;
 }
 

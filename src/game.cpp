@@ -18,23 +18,20 @@ void update(GameState& state, const Input& input)
     float sidethrust = params.movespeed * input.axes.x1;
     float r = state.player.rotation;
 
+    // Aiming
+    state.player.reticle.x = input.axes.x2;
+    state.player.reticle.y = input.axes.y2;
+
     bml::Vec t = {
       thrust * cos(r) + sidethrust * sin(r),
       thrust * sin(r) - sidethrust * cos(r)
     };
 
-    state.player.rotation = -params.rotspeed * input.axes.x2;
+    state.player.rotation = atan2(state.player.reticle.y - state.player.pos.y, state.player.reticle.x - state.player.pos.x);
     state.player.vel += t;
-    state.player.vel.x += thrust * cos(state.player.rotation);
-    state.player.vel.y += thrust * sin(state.player.rotation);
 
     state.player.pos += state.player.vel;
     state.player.vel = state.player.vel * params.drag;
-    /* state.player.vel.y *= params.drag; */
-
-    // Aiming
-    state.player.reticle.x = input.axes.x2;
-    state.player.reticle.y = input.axes.y2;
 
 }
 
