@@ -12,7 +12,7 @@ typedef int32_t i32;
 
 namespace bml 
 {
-  static std::ostream& log = std::cout;
+  static std::ostream& logger = std::cout;
   typedef struct _Vec {
     float x;
     float y;
@@ -27,6 +27,16 @@ namespace bml
   {
     lhs.x += rhs.x;
     lhs.y += rhs.y;
+  }
+  static Vec operator *(float rhs, const Vec& lhs)
+  {
+    Vec ret = {lhs.x * rhs, lhs.y * rhs};
+    return ret;
+  }
+  static Vec operator *(const Vec& lhs, float rhs)
+  {
+    Vec ret = {lhs.x * rhs, lhs.y * rhs};
+    return ret;
   }
 }
 

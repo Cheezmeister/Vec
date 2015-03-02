@@ -1,3 +1,4 @@
+#include <cmath>
 #include <OpenGL/gl.h>
 #include "bml.h"
 
@@ -91,13 +92,6 @@ namespace gfx
     GLuint shader;
     GLuint reticle_shader;
 
-    // Update a VBO
-    void update_vbo(VertexBuffer<3> vertexPositions, GLuint which)
-    {
-        glBindBuffer(GL_ARRAY_BUFFER, which);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertexPositions.flat), vertexPositions.flat, GL_STATIC_DRAW);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-    }
 
     // Check for GL errors
     void check_error(const string& message)
@@ -106,41 +100,108 @@ namespace gfx
         if (error)
         {
             // TODO get text of error
-            log << message << " reported error: " << error << endl;
+            logger << message << " reported error: " << error << endl;
         }
+    }
+
+    // Set a uniform shader param
+    void set_uniform(GLuint shader, const string& name, float f)
+    {
+        GLuint loc = glGetUniformLocation(shader, name.c_str());
+        glUniform1f(loc, f);
+    }
+    void set_uniform(GLuint shader, const string& name, float x, float y)
+    {
+        GLuint loc = glGetUniformLocation(shader, name.c_str());
+        glUniform2f(loc, x, y);
+    }
+    void set_uniform(GLuint shader, const string& name, const Vec& v)
+    {
+        set_uniform(shader, name, v.x, v.y);
+    }
+
+    // Prepare a triangle array for an N-gon
+    float* make_polygon_vertex_array(int sides, float radius)
+    {
+        // 3x4 coordinates per triangle
+        float* vertices = new float[sides * 12];
+        for (int i = 0; i < sides; ++i)
+        {
+
+            int index = i * 12;
+            float angle = i * 2 * M_PI / sides;
+            vertices[index  ] = radius * cos(angle);
+            vertices[index+1] = radius * sin(angle);
+            vertices[index+2] = 0;
+            vertices[index+3] = 1;
+
+            angle = (i+1) * 2 * M_PI / sides;
+            vertices[index+4] = radius * cos(angle);
+            vertices[index+5] = radius * sin(angle);
+            vertices[index+6] = 0;
+            vertices[index+7] = 1;
+
+            vertices[index+8] = 0;
+            vertices[index+9] = 0;
+            vertices[index+10] = 0;
+            vertices[index+11] = 1;
+        }
+        return vertices;
+    }
+
+    GLuint make_vbo(size_t size, float* vertices)
+    {
+        GLuint ret;
+        glGenBuffers(1, &ret);
+        glBindBuffer(GL_ARRAY_BUFFER, ret);
+        glBufferData(GL_ARRAY_BUFFER, size, vertices, GL_STATIC_DRAW); check_error("buffering");
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        return ret;
+    }
+
+    GLuint make_polygon_vbo(int sides, float radius)
+    {
+        float* vertices = make_polygon_vertex_array(sides, radius);
+        size_t memsize = 12 * sides * sizeof(float);
+        GLuint ret = make_vbo(memsize, vertices);
+        delete[] vertices;
+        return ret;
     }
 
     // Player shader
     GLuint make_shader()
     {
         GLuint vertex = arcsynthesis::CreateShader(GL_VERTEX_SHADER,
-                        "#version 120  \n"
-                        "attribute vec4 inPos; \n"
-                        "uniform vec2 offset; \n"
-                        "uniform float rotation; \n"
-                        "uniform float ticks; \n"
-                        "varying vec4 glPos; \n"
-                        "void main() { \n"
-                        "  vec2 rotated;\n"
-                        "  rotated.x = inPos.x * cos(rotation) - inPos.y * sin(rotation);\n"
-                        "  rotated.y = inPos.x * sin(rotation) + inPos.y * cos(rotation);\n"
-                        "  vec2 pos = rotated * (0.2 + 0.1 * sin(ticks));\n"
-                        "  gl_Position = glPos = vec4(offset + pos, 0, 1); \n"
-                        "} \n"
+            "#version 120  \n"
+            "attribute vec4 inPos; \n"
+            "uniform vec2 offset; \n"
+            "uniform float rotation; \n"
+            "uniform float ticks; \n"
+            "varying vec4 glPos; \n"
+            "void main() { \n"
+            "  vec2 rotated;\n"
+            "  rotated.x = inPos.x * cos(rotation) - inPos.y * sin(rotation);\n"
+            "  rotated.y = inPos.x * sin(rotation) + inPos.y * cos(rotation);\n"
+            "  vec2 pos = rotated * (0.2 + 0.1 * sin(ticks));\n"
+            "  gl_Position = glPos = vec4(offset + pos, 0, 1); \n"
+            "} \n"
         );
+
         GLuint fragment = arcsynthesis::CreateShader(GL_FRAGMENT_SHADER,
-                          "#version 120 \n"
-                          /* "out vec3 color; \n" */
-                          "varying vec4 glPos; \n"
-                          "void main() { \n"
-                          "  vec3 c = cross(vec3(1, 0, 0), vec3(glPos.x, glPos.y, 0)); \n"
-                          "  float green = length(c); \n"
-                          "  gl_FragColor = vec4(glPos.x,green,glPos.y,0); \n"
-                          "} \n"
+            "#version 120 \n"
+            "varying vec4 glPos; \n"
+            "uniform float ticks; \n"
+            "void main() { \n"
+            "  float r = 0.0 + 0.5 * sin(ticks/2); \n"
+            "  float g = 0.5 + 0.5 * sin(ticks/3); \n"
+            "  float b = 0.0 + 0.5 * sin(ticks*1.5); \n"
+            "  gl_FragColor = vec4(r, g, b, 0); \n"
+            "} \n"
         );
         GLuint program = arcsynthesis::CreateProgram(vertex, fragment);
         return program;
     }
+
     void init()
     {
         // Set up VBO
@@ -153,16 +214,7 @@ namespace gfx
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertexPositions), vertexPositions.flat, GL_STATIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
-        VertexBuffer<4> reticleVertices = {
-            0.1f,  0.1f, 0.0f, 1.0f,
-            0.1f, -0.1f, 0.0f, 1.0f,
-            -0.1f, -0.1f, 0.0f, 1.0f,
-            -0.1f,  0.1f, 0.0f, 1.0f,
-        };
-        glGenBuffers(1, &reticle_vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, reticle_vbo);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(reticleVertices), reticleVertices.flat, GL_STATIC_DRAW);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        reticle_vbo = make_polygon_vbo(5, 0.2);
 
         // Init shaders
         shader = make_shader();
@@ -178,30 +230,27 @@ namespace gfx
     {
         // Clear
         glClear(GL_COLOR_BUFFER_BIT);
-        check_error("clearing to blue");
+        check_error("clearing to pink");
 
         // Render "player"
-        GLuint loc = glGetUniformLocation(shader, "offset");      check_error("getting param");
         glUseProgram(shader);                                     check_error("binding shader");
-        glUniform2f(loc, state.player.pos.x, state.player.pos.y); check_error("setting uniform");
-        loc = glGetUniformLocation(shader, "rotation");           check_error("getting param");
-        glUniform1f(loc, state.player.rotation); check_error("setting uniform");
-        loc = glGetUniformLocation(shader, "ticks");           check_error("getting param");
-        glUniform1f(loc, ticks / 100.0f); check_error("setting ticks");
+        set_uniform(shader, "offset", state.player.pos);          check_error("setting offset");
+        set_uniform(shader, "rotation", state.player.rotation);   check_error("setting uniform");
+        set_uniform(shader, "ticks", ticks / 100.0f);             check_error("setting ticks");
         glBindBuffer(GL_ARRAY_BUFFER, vbo);                       check_error("binding buf");
         glEnableVertexAttribArray(0);                             check_error("enabling vaa");
         glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);    check_error("calling vap");
-        glDrawArrays(GL_TRIANGLES, 0, 3);                         check_error("drawing arrays");
+        glDrawArrays(GL_TRIANGLES, 0, 4);                         check_error("drawing arrays");
         glDisableVertexAttribArray(0);                            check_error("disabling vaa");
 
         // Render reticle
-        loc = glGetUniformLocation(reticle_shader, "offset");   check_error("getting param");
         glUseProgram(reticle_shader);                             check_error("binding shader");
-        glUniform2f(loc, 2*state.player.reticle.x, 2*state.player.reticle.y); check_error("setting uniform");
+        set_uniform(reticle_shader, "offset", 2*state.player.reticle); check_error("getting param");
+        set_uniform(reticle_shader, "rotation", ticks / 100.0f); check_error("getting param");
         glBindBuffer(GL_ARRAY_BUFFER, reticle_vbo);               check_error("binding buf");
         glEnableVertexAttribArray(0);                             check_error("enabling vaa");
         glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);    check_error("calling vap");
-        glDrawArrays(GL_QUADS, 0, 4);                         check_error("drawing arrays");
+        glDrawArrays(GL_TRIANGLES, 0, 12*5);                        check_error("drawing arrays");
         glDisableVertexAttribArray(0);                            check_error("disabling vaa");
 
 

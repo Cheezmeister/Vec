@@ -79,10 +79,10 @@ Input handle_input()
 
     // Poll keyboard
     const Uint8* keystate = SDL_GetKeyboardState(NULL);
-    ret.axes.y1  = 1.0 * (keystate[SDL_SCANCODE_UP]);
-    ret.axes.y1 -= 1.0 * (keystate[SDL_SCANCODE_DOWN]);
-    ret.axes.x1  = 1.0 * (keystate[SDL_SCANCODE_RIGHT]);
-    ret.axes.x1 -= 1.0 * (keystate[SDL_SCANCODE_LEFT]);
+    ret.axes.y1  = 1.0 * (keystate[SDL_SCANCODE_W]);
+    ret.axes.y1 -= 1.0 * (keystate[SDL_SCANCODE_A]);
+    ret.axes.x1  = 1.0 * (keystate[SDL_SCANCODE_S]);
+    ret.axes.x1 -= 1.0 * (keystate[SDL_SCANCODE_D]);
     return ret;
 }
 
@@ -149,9 +149,9 @@ int main ( int argc, char** argv )
         return 1;
     }
 
-    viewport.x = 200;
-    viewport.y = 200;
-    win = SDL_CreateWindow("SDL2/GL4.3", 0, 0, 200, 200, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+    viewport.x = 400;
+    viewport.y = 400;
+    win = SDL_CreateWindow("SDL2/GL4.3", 0, 0, viewport.x, viewport.y, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
     if (win == NULL)
     {
         cerr << "Couldn't set video mode";

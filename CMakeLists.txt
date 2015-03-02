@@ -43,6 +43,7 @@ list(APPEND SOURCES
 
 #declare the target program
 add_executable(${APP_NAME} ${SOURCES} ${EXTRA_SOURCES} ${HEADERS})
+add_executable(test_gfx src/test_gfx.cpp)
 
 
 #add some useful preprocessor defines
@@ -60,6 +61,7 @@ set_target_properties(${APP_NAME} PROPERTIES
 # set(CMAKE_C_FLAGS   ${COMPILE_FLAGS} ${CMAKE_C_FLAGS} )
 
 target_link_libraries(${APP_NAME} ${LINKED_LIBS})
+target_link_libraries(test_gfx ${LINKED_LIBS})
 include_directories(${EXTRA_INCLUDE_DIRECTORIES})
 
 #install the binary to bin under the install directory
