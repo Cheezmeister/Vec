@@ -83,14 +83,21 @@ union VertexBuffer {
   Vertex v[N];
 };
 
+typedef struct _RenderState {
+  struct _Shaders {
+    GLuint player;
+    GLuint reticle;
+  } shaders;
+  struct _VBO {
+    GLuint player;
+    GLuint reticle;
+  } vbo;
+} RenderState;
+
 namespace gfx
 {
 
-    // Nasty globals
-    GLuint vbo;
-    GLuint reticle_vbo;
-    GLuint shader;
-    GLuint reticle_shader;
+    RenderState renderstate;
 
 
     // Check for GL errors
@@ -205,20 +212,12 @@ namespace gfx
     void init()
     {
         // Set up VBO
-        VertexBuffer<3> vertexPositions = {
-             0.75f, 0.0f, 0.0f, 1.0f,
-            -0.75f, 0.75f, 0.0f, 1.0f,
-            -0.75f, -0.75f, 0.0f, 1.0f,
-        };
-        glGenBuffers(1, &vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertexPositions), vertexPositions.flat, GL_STATIC_DRAW);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        reticle_vbo = make_polygon_vbo(5, 0.2);
+        renderstate.vbo.player = make_polygon_vbo(3, 0.5);
+        renderstate.vbo.reticle = make_polygon_vbo(5, 0.2);
 
         // Init shaders
-        shader = make_shader();
-        reticle_shader = make_shader();
+        renderstate.shaders.player = make_shader();
+        renderstate.shaders.reticle = make_shader();
 
         // Misc setup
         glClearColor(1.0f, 0.0f, 1.0f, 0.0f);
@@ -228,11 +227,16 @@ namespace gfx
     // Render a frame
     void render(GameState& state, u32 ticks)
     {
+        GLuint shader;
+        GLuint vbo;
+
         // Clear
         glClear(GL_COLOR_BUFFER_BIT);
         check_error("clearing to pink");
 
         // Render "player"
+        shader = renderstate.shaders.player;
+        vbo = renderstate.vbo.player;
         glUseProgram(shader);                                     check_error("binding shader");
         set_uniform(shader, "offset", state.player.pos);          check_error("setting offset");
         set_uniform(shader, "rotation", state.player.rotation);   check_error("setting uniform");
@@ -240,14 +244,16 @@ namespace gfx
         glBindBuffer(GL_ARRAY_BUFFER, vbo);                       check_error("binding buf");
         glEnableVertexAttribArray(0);                             check_error("enabling vaa");
         glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);    check_error("calling vap");
-        glDrawArrays(GL_TRIANGLES, 0, 4);                         check_error("drawing arrays");
+        glDrawArrays(GL_TRIANGLES, 0, 12*3);                         check_error("drawing arrays");
         glDisableVertexAttribArray(0);                            check_error("disabling vaa");
 
         // Render reticle
-        glUseProgram(reticle_shader);                             check_error("binding shader");
-        set_uniform(reticle_shader, "offset", 2*state.player.reticle); check_error("getting param");
-        set_uniform(reticle_shader, "rotation", ticks / 100.0f); check_error("getting param");
-        glBindBuffer(GL_ARRAY_BUFFER, reticle_vbo);               check_error("binding buf");
+        shader = renderstate.shaders.reticle;
+        vbo = renderstate.vbo.reticle;
+        glUseProgram(shader);                             check_error("binding shader");
+        set_uniform(shader, "offset", 2*state.player.reticle); check_error("getting param");
+        set_uniform(shader, "rotation", ticks / 100.0f); check_error("getting param");
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);               check_error("binding buf");
         glEnableVertexAttribArray(0);                             check_error("enabling vaa");
         glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);    check_error("calling vap");
         glDrawArrays(GL_TRIANGLES, 0, 12*5);                        check_error("drawing arrays");
