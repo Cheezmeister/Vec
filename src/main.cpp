@@ -13,8 +13,8 @@ typedef struct _Args {
 } Args;
 
 typedef struct _Dimension2 {
-  float x;
-  float y;
+    float x;
+    float y;
 } Dimension2;
 
 
@@ -41,14 +41,19 @@ int parse_args(int argc, char** argv, Args* outArgs)
 
 Input handle_input()
 {
-    Input ret;
+    Input ret = {0};
 
     // Poll events
     SDL_Event event;
     while (SDL_PollEvent(&event) )
     {
         if (event.type == SDL_QUIT) ret.quit = true;
-        if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE) ret.quit = true;
+        if (event.type == SDL_KEYDOWN)
+        {
+            if (event.key.keysym.sym == SDLK_ESCAPE) ret.quit = true;
+            if (event.key.keysym.sym == SDLK_SPACE) ret.shot = true;
+        }
+
         if (event.type == SDL_WINDOWEVENT)
         {
             if (event.window.event == SDL_WINDOWEVENT_RESIZED)
@@ -72,7 +77,7 @@ Input handle_input()
     } mouse;
     mouse.buttons = SDL_GetMouseState(&mouse.x, &mouse.y);
 
-    ret.shoot = (mouse.buttons & SDL_BUTTON(1));
+    ret.shoot |= (mouse.buttons & SDL_BUTTON(1));
     ret.axes.x2 = mouse.x * 2.0 / viewport.x - 1.0;
     ret.axes.y2 = mouse.y * 2.0 / viewport.y - 1.0;
     ret.axes.y2 *= -1;
@@ -95,6 +100,8 @@ void loop()
     game::init();
 
     GameState state = {0};
+
+    SDL_ShowCursor(SDL_DISABLE);
 
     while (true)
     {
@@ -135,7 +142,7 @@ void print_info()
 
 int scratch()
 {
-  return 0;
+    return 0;
 }
 int main ( int argc, char** argv )
 {

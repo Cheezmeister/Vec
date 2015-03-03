@@ -4,8 +4,8 @@
 namespace game {
 
 struct _GameParams {
-    float movespeed, rotspeed, drag ;
-} params = {   0.005,      6, 0.9 };
+    float movespeed, rotspeed, drag, bulletspeed ;
+} params = {   0.005,      6, 0.9, 0.03 };
 
 void init()
 {
@@ -23,8 +23,8 @@ void update(GameState& state, const Input& input)
     state.player.reticle.y = input.axes.y2;
 
     bml::Vec t = {
-      thrust * cos(r) + sidethrust * sin(r),
-      thrust * sin(r) - sidethrust * cos(r)
+        thrust * cos(r) + sidethrust * sin(r),
+        thrust * sin(r) - sidethrust * cos(r)
     };
 
     state.player.rotation = atan2(state.player.reticle.y - state.player.pos.y, state.player.reticle.x - state.player.pos.x);
@@ -33,6 +33,24 @@ void update(GameState& state, const Input& input)
     state.player.pos += state.player.vel;
     state.player.vel = state.player.vel * params.drag;
 
+    // Shooting
+    if (input.shoot)
+    {
+        int i = state.next_bullet;
+        ++state.next_bullet %= MAX_BULLETS;
+        state.bullets[i].life = 1000;
+        state.bullets[i].vel = state.player.reticle - state.player.pos;
+        state.bullets[i].pos = state.player.pos;
+        fprintf(stderr, "pew");
+    }
+
+    // Bullets
+    for (int i = 0; i < MAX_BULLETS; ++i)
+    {
+        _GameState::_Bullet& b = state.bullets[i];
+        b.life--;
+        b.pos += b.vel * params.bulletspeed;
+    }
 }
 
 }

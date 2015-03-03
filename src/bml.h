@@ -10,34 +10,39 @@ const char ESCAPE = '\e';
 typedef uint32_t u32;
 typedef int32_t i32;
 
-namespace bml 
+namespace bml
 {
-  static std::ostream& logger = std::cout;
-  typedef struct _Vec {
+static std::ostream& logger = std::cout;
+typedef struct _Vec {
     float x;
     float y;
-  } Vec;
+} Vec;
 
-  static Vec operator +(const Vec& lhs, const Vec& rhs)
-  {
+static Vec operator -(const Vec& lhs, const Vec& rhs)
+{
+    Vec ret = {lhs.x - rhs.x, lhs.y - rhs.y};
+    return ret;
+}
+static Vec operator +(const Vec& lhs, const Vec& rhs)
+{
     Vec ret = {lhs.x + rhs.x, lhs.y + rhs.y};
     return ret;
-  }
-  static void operator +=(Vec& lhs, const Vec& rhs)
-  {
+}
+static void operator +=(Vec& lhs, const Vec& rhs)
+{
     lhs.x += rhs.x;
     lhs.y += rhs.y;
-  }
-  static Vec operator *(float rhs, const Vec& lhs)
-  {
+}
+static Vec operator *(float rhs, const Vec& lhs)
+{
     Vec ret = {lhs.x * rhs, lhs.y * rhs};
     return ret;
-  }
-  static Vec operator *(const Vec& lhs, float rhs)
-  {
+}
+static Vec operator *(const Vec& lhs, float rhs)
+{
     Vec ret = {lhs.x * rhs, lhs.y * rhs};
     return ret;
-  }
+}
 }
 
 
@@ -46,35 +51,44 @@ typedef struct _Input {
 
     // Normalized (-1.0 <-> 1.0) axes
     struct _Axes {
-      float x1;
-      float x2;
-      float y1;
-      float y2;
+        float x1;
+        float x2;
+        float y1;
+        float y2;
     } axes;
 
     bool pause;
-    bool shoot;
-    
+    bool shoot; // fire is held
+    bool shot; // fire was pressed
+
 } Input;
 
 
+const int MAX_BULLETS = 500;
+
 typedef struct _GameState {
     struct _Player {
-      bml::Vec pos;
-      bml::Vec vel;
-      float rotation; // radians
-      bml::Vec reticle;
+        bml::Vec pos;
+        bml::Vec vel;
+        float rotation; // radians
+        bml::Vec reticle;
     } player;
+    struct _Bullet {
+        float life;
+        bml::Vec pos;
+        bml::Vec vel;
+    } bullets[MAX_BULLETS];
+    int next_bullet;
 } GameState;
 
 namespace gfx
 {
-  void init();
-  void render(GameState& state, u32 ticks, bool debug);
+void init();
+void render(GameState& state, u32 ticks, bool debug);
 }
 
 namespace game
 {
-  void init();
-  void update(GameState& state, const Input& input);
+void init();
+void update(GameState& state, const Input& input);
 }
