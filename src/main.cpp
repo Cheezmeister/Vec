@@ -56,8 +56,9 @@ Input handle_input()
                 int x = event.window.data1;
                 int y = event.window.data2;
                 viewport.x = x;
-                viewport.y = x;
+                viewport.y = y;
                 int max = x > y ? x : y;
+
                 glViewport(0, 0, max, max);
             }
         }
@@ -108,7 +109,7 @@ void loop()
         game::update(state, input);
 
         // Render graphics
-        gfx::render(state, ticks);
+        gfx::render(state, ticks, args.debug);
 
         // Commit
         SDL_GL_SwapWindow(win);

@@ -70,7 +70,7 @@ typedef struct _GameState {
 namespace gfx
 {
   void init();
-  void render(GameState& state, u32 ticks);
+  void render(GameState& state, u32 ticks, bool debug);
 }
 
 namespace game
