@@ -41,7 +41,6 @@ void update(GameState& state, const Input& input)
         state.bullets[i].life = 1000;
         state.bullets[i].vel = state.player.reticle - state.player.pos;
         state.bullets[i].pos = state.player.pos;
-        fprintf(stderr, "pew");
     }
 
     // Bullets

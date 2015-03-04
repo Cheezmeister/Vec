@@ -67,6 +67,9 @@ GLuint CreateProgram(GLuint vertex, GLuint fragment)
 
 }
 
+namespace gfx
+{
+
 typedef union Vertex {
     float a[4];
     struct {
@@ -83,24 +86,25 @@ union VertexBuffer {
     Vertex v[N];
 };
 
+typedef struct _VBO {
+    GLuint handle;
+    GLsizei size;
+} VBO;
+
 typedef struct _RenderState {
     struct _Shaders {
         GLuint player;
         GLuint reticle;
         GLuint viewport;
     } shaders;
-    struct _VBO {
-        GLuint player;
-        GLuint reticle;
-        GLuint viewport;
+    struct _VBOs {
+        VBO player;
+        VBO reticle;
+        VBO viewport;
     } vbo;
 } RenderState;
 
-namespace gfx
-{
-
 RenderState renderstate;
-
 
 // Check for GL errors
 void check_error(const string& message)
@@ -169,31 +173,36 @@ GLuint make_vbo(size_t size, float* vertices)
     return ret;
 }
 
-GLuint make_polygon_vbo(int sides, float radius)
+VBO make_polygon_vbo(int sides, float radius)
 {
+    VBO ret;
+    int vcount = 3 * sides;
+    size_t memsize = vcount * 4 * sizeof(float);
     float* vertices = make_polygon_vertex_array(sides, radius);
-    size_t memsize = 12 * sides * sizeof(float);
-    GLuint ret = make_vbo(memsize, vertices);
+    ret.handle = make_vbo(memsize, vertices);
     delete[] vertices;
+    ret.size = vcount;
     return ret;
 }
 
-// Player shader
-GLuint make_shader()
+GLuint make_shader(GLuint vertex, GLuint fragment)
 {
-    GLuint vertex = arcsynthesis::CreateShader(GL_VERTEX_SHADER,
+    return arcsynthesis::CreateProgram(vertex, fragment);
+}
+
+void init()
+{
+    // Compile shaders
+    GLuint vs_player = arcsynthesis::CreateShader(GL_VERTEX_SHADER,
                     "#version 120  \n"
                     "attribute vec4 inPos; "
                     "uniform vec2 offset; "
                     "uniform float rotation; "
                     "uniform float ticks; "
                     "uniform float scale = 1;"
-
                     "varying vec4 glPos; "
-
                     "const float frequency = 2;"
                     "const float mPI = 3.14159;"
-
                     "void main() { "
                     "  vec2 rotated;"
                     "  rotated.x = inPos.x * cos(rotation) - inPos.y * sin(rotation);"
@@ -203,9 +212,9 @@ GLuint make_shader()
                     "  pos *= scale;"
                     "  gl_Position = glPos = vec4(offset + pos, 0, 1); "
                     "} "
-                                              );
+    );
 
-    GLuint fragment = arcsynthesis::CreateShader(GL_FRAGMENT_SHADER,
+    GLuint fs_player = arcsynthesis::CreateShader(GL_FRAGMENT_SHADER,
                       "#version 120 \n"
                       "varying vec4 glPos; "
                       "uniform float ticks; "
@@ -214,20 +223,13 @@ GLuint make_shader()
                       "  float rphase = ticks / 2 / 1000.0;"
                       "  float gphase = ticks / 5 / 1000.0;"
                       "  float bphase = ticks / 7.0 / 1000.0;"
-
                       "  float r = 0.2 + 0.8 * sin(rphase * mPI); "
                       "  float g = 0.5 + 0.5 * sin(gphase * mPI); "
                       "  float b = 0.2 + 0.8 * sin(bphase * mPI); "
-
                       "  gl_FragColor = vec4(r, g, b, 0); "
                       "} "
-                                                );
-    GLuint program = arcsynthesis::CreateProgram(vertex, fragment);
-    return program;
-}
+    );
 
-void init()
-{
     // Set up VBO
     renderstate.vbo.player = make_polygon_vbo(3, 0.5);
     renderstate.vbo.reticle = make_polygon_vbo(5, 0.3);
@@ -238,12 +240,13 @@ void init()
         1, -1, 0, 1,
         1,  1, 0, 1,
     };
-    renderstate.vbo.viewport = make_vbo(sizeof(viewportVertices), viewportVertices.flat);
+    renderstate.vbo.viewport.handle = make_vbo(sizeof(viewportVertices), viewportVertices.flat);
+    renderstate.vbo.viewport.size = 4;
 
     // Init shaders
-    renderstate.shaders.player = make_shader();
-    renderstate.shaders.reticle = make_shader();
-    renderstate.shaders.viewport = make_shader();
+    renderstate.shaders.player = make_shader(vs_player, fs_player);
+    renderstate.shaders.reticle = make_shader(vs_player, fs_player);
+    renderstate.shaders.viewport = make_shader(vs_player, fs_player);
 
     // Misc setup
     glClearColor(1.0f, 0.0f, 1.0f, 0.0f);
@@ -254,7 +257,7 @@ void init()
 void render(GameState& state, u32 ticks, bool debug)
 {
     GLuint shader;
-    GLuint vbo;
+    VBO vbo;
 
     // Clear
     glClear(GL_COLOR_BUFFER_BIT);
@@ -268,10 +271,10 @@ void render(GameState& state, u32 ticks, bool debug)
         glUseProgram(shader);
         set_uniform(shader, "scale", 4);
         set_uniform(shader, "ticks", ticks + 1400);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo.handle);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
-        glDrawArrays(GL_QUADS, 0, 4);
+        glDrawArrays(GL_QUADS, 0, vbo.size);
 
         set_uniform(shader, "scale", 2);
         set_uniform(shader, "ticks", ticks + 1200);
@@ -292,10 +295,10 @@ void render(GameState& state, u32 ticks, bool debug)
     set_uniform(shader, "rotation", state.player.rotation);
     set_uniform(shader, "ticks", ticks);
     set_uniform(shader, "scale", 1);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo.handle);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
-    glDrawArrays(GL_TRIANGLES, 0, 12*3);
+    glDrawArrays(GL_TRIANGLES, 0, vbo.size);
     glDisableVertexAttribArray(0);
 
     // Render reticle
@@ -305,10 +308,10 @@ void render(GameState& state, u32 ticks, bool debug)
     set_uniform(shader, "offset", state.player.reticle);
     set_uniform(shader, "scale", 1);
     set_uniform(shader, "rotation", ticks / 1000.0f);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo.handle);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
-    glDrawArrays(GL_TRIANGLES, 0, 12*5);
+    glDrawArrays(GL_TRIANGLES, 0, vbo.size);
     glDisableVertexAttribArray(0);
 
     // Render bullets
@@ -323,10 +326,10 @@ void render(GameState& state, u32 ticks, bool debug)
         set_uniform(shader, "rotation", ticks / 100.0f);
         set_uniform(shader, "scale", 0.2);
         set_uniform(shader, "ticks", ticks);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo.handle);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
-        glDrawArrays(GL_TRIANGLES, 0, 12*5);
+        glDrawArrays(GL_TRIANGLES, 0, vbo.size);
         glDisableVertexAttribArray(0);
     }
 
