@@ -185,6 +185,15 @@ VBO make_polygon_vbo(int sides, float radius)
     return ret;
 }
 
+void draw_array(VBO vbo)
+{
+    glBindBuffer(GL_ARRAY_BUFFER, vbo.handle);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
+    glDrawArrays(GL_TRIANGLES, 0, vbo.size);
+    glDisableVertexAttribArray(0);
+}
+
 GLuint make_shader(GLuint vertex, GLuint fragment)
 {
     return arcsynthesis::CreateProgram(vertex, fragment);
@@ -289,30 +298,21 @@ void render(GameState& state, u32 ticks, bool debug)
 
     // Render "player"
     shader = renderstate.shaders.player;
-    vbo = renderstate.vbo.player;
     glUseProgram(shader);
     set_uniform(shader, "offset", state.player.pos);
     set_uniform(shader, "rotation", state.player.rotation);
     set_uniform(shader, "ticks", ticks);
     set_uniform(shader, "scale", 1);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo.handle);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
-    glDrawArrays(GL_TRIANGLES, 0, vbo.size);
-    glDisableVertexAttribArray(0);
+    draw_array(renderstate.vbo.player);
 
     // Render reticle
     shader = renderstate.shaders.reticle;
-    vbo = renderstate.vbo.reticle;
     glUseProgram(shader);
     set_uniform(shader, "offset", state.player.reticle);
     set_uniform(shader, "scale", 1);
     set_uniform(shader, "rotation", ticks / 1000.0f);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo.handle);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
-    glDrawArrays(GL_TRIANGLES, 0, vbo.size);
-    glDisableVertexAttribArray(0);
+    set_uniform(shader, "scale", 1);
+    draw_array(renderstate.vbo.reticle);
 
     // Render bullets
     for (int i = 0; i < MAX_BULLETS; ++i)
@@ -326,11 +326,7 @@ void render(GameState& state, u32 ticks, bool debug)
         set_uniform(shader, "rotation", ticks / 100.0f);
         set_uniform(shader, "scale", 0.2);
         set_uniform(shader, "ticks", ticks);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo.handle);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
-        glDrawArrays(GL_TRIANGLES, 0, vbo.size);
-        glDisableVertexAttribArray(0);
+        draw_array(vbo);
     }
 
 
