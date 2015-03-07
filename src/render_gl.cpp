@@ -133,6 +133,50 @@ void set_uniform(GLuint shader, const string& name, const Vec& v)
     set_uniform(shader, name, v.x, v.y);
 }
 
+float* make_polygon_vertex_array(int sides, float innerradius, float outerradius)
+{
+    // 3x4 coordinates per triangle
+    float* vertices = new float[sides * 24];
+    for (int i = 0; i < sides; ++i)
+    {
+
+        int index = i * 24;
+        float angle = i * 2 * M_PI / sides;
+        vertices[index  ] = outerradius * cos(angle);
+        vertices[index+1] = outerradius * sin(angle);
+        vertices[index+2] = 0;
+        vertices[index+3] = 1;
+
+        angle = (i+1) * 2 * M_PI / sides;
+        vertices[index+4] = outerradius * cos(angle);
+        vertices[index+5] = outerradius * sin(angle);
+        vertices[index+6] = 0;
+        vertices[index+7] = 1;
+
+        vertices[index+8]  = innerradius * cos(angle);
+        vertices[index+9]  = innerradius * sin(angle);
+        vertices[index+10] = 0;
+        vertices[index+11] = 1;
+
+        vertices[index+12] = innerradius * cos(angle);
+        vertices[index+13] = innerradius * sin(angle);
+        vertices[index+14] = 0;
+        vertices[index+15] = 1;
+
+        angle = i * 2 * M_PI / sides;
+        vertices[index+16] = innerradius * cos(angle);
+        vertices[index+17] = innerradius * sin(angle);
+        vertices[index+18] = 0;
+        vertices[index+19] = 1;
+
+        vertices[index+20]  = outerradius * cos(angle);
+        vertices[index+21]  = outerradius * sin(angle);
+        vertices[index+22] = 0;
+        vertices[index+23] = 1;
+    }
+    return vertices;
+}
+
 // Prepare a triangle array for an N-gon
 float* make_polygon_vertex_array(int sides, float radius)
 {
@@ -173,12 +217,12 @@ GLuint make_vbo(size_t size, float* vertices)
     return ret;
 }
 
-VBO make_polygon_vbo(int sides, float radius)
+VBO make_polygon_vbo(int sides, float inner, float radius)
 {
     VBO ret;
-    int vcount = 3 * sides;
+    int vcount = 6 * sides;
     size_t memsize = vcount * 4 * sizeof(float);
-    float* vertices = make_polygon_vertex_array(sides, radius);
+    float* vertices = make_polygon_vertex_array(sides, inner, radius);
     ret.handle = make_vbo(memsize, vertices);
     delete[] vertices;
     ret.size = vcount;
@@ -240,8 +284,8 @@ void init()
     );
 
     // Set up VBO
-    renderstate.vbo.player = make_polygon_vbo(3, 0.5);
-    renderstate.vbo.reticle = make_polygon_vbo(5, 0.3);
+    renderstate.vbo.player = make_polygon_vbo(3, 0, 0.5);
+    renderstate.vbo.reticle = make_polygon_vbo(5, 0.3, 0.4);
 
     VertexBuffer<4> viewportVertices = {
         -1, 1, 0, 1,
