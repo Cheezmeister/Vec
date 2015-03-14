@@ -246,7 +246,7 @@ GLuint make_shader(GLuint vertex, GLuint fragment)
 void init()
 {
     // Compile shaders
-    GLuint vs_player = arcsynthesis::CreateShader(GL_VERTEX_SHADER,
+    GLuint vs_pulse = arcsynthesis::CreateShader(GL_VERTEX_SHADER,
                     "#version 120  \n"
                     "attribute vec4 inPos; "
                     "uniform vec2 offset; "
@@ -267,7 +267,7 @@ void init()
                     "} "
     );
 
-    GLuint fs_player = arcsynthesis::CreateShader(GL_FRAGMENT_SHADER,
+    GLuint fs_scintillate = arcsynthesis::CreateShader(GL_FRAGMENT_SHADER,
                       "#version 120 \n"
                       "varying vec4 glPos; "
                       "uniform float ticks; "
@@ -283,6 +283,19 @@ void init()
                       "} "
     );
 
+    GLuint fs_pulse = arcsynthesis::CreateShader(GL_FRAGMENT_SHADER,
+                      "#version 120 \n"
+                      "varying vec4 glPos; "
+                      "uniform float ticks; "
+                      "const float mPI = 3.14159;"
+                      "void main() { "
+                      "  float phase = ticks * 1 / 1000.0;"
+                      "  float r = 0.0;"
+                      "  float g = 0.0 + 0.9 * sin(phase * mPI); "
+                      "  float b = 0.0 + 0.9 * cos(phase * mPI);"
+                      "  gl_FragColor = vec4(r, g, b, 0); "
+                      "} "
+    );
     // Set up VBO
     renderstate.vbo.player = make_polygon_vbo(3, 0, 0.5);
     renderstate.vbo.reticle = make_polygon_vbo(5, 0.3, 0.4);
@@ -297,9 +310,9 @@ void init()
     renderstate.vbo.viewport.size = 4;
 
     // Init shaders
-    renderstate.shaders.player = make_shader(vs_player, fs_player);
-    renderstate.shaders.reticle = make_shader(vs_player, fs_player);
-    renderstate.shaders.viewport = make_shader(vs_player, fs_player);
+    renderstate.shaders.player = make_shader(vs_pulse, fs_scintillate);
+    renderstate.shaders.reticle = make_shader(vs_pulse, fs_pulse);
+    renderstate.shaders.viewport = make_shader(vs_pulse, fs_scintillate);
 
     // Misc setup
     glClearColor(1.0f, 0.0f, 1.0f, 0.0f);
@@ -372,6 +385,20 @@ void render(GameState& state, u32 ticks, bool debug)
         set_uniform(shader, "ticks", ticks);
         draw_array(vbo);
     }
+    for (int i = 0; i < MAX_ENEMIES; ++i)
+    {
+        if (state.enemies[i].life <= 0) continue;
+
+        shader = renderstate.shaders.player;
+        vbo = renderstate.vbo.reticle;
+        glUseProgram(shader);
+        set_uniform(shader, "offset", state.enemies[i].pos);
+        set_uniform(shader, "rotation", ticks / 100.0f);
+        set_uniform(shader, "scale", 0.6);
+        set_uniform(shader, "ticks", ticks);
+        draw_array(vbo);
+    }
+
 
 
 }

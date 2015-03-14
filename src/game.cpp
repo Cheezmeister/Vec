@@ -4,11 +4,24 @@
 namespace game {
 
 struct _GameParams {
-    float movespeed, rotspeed, drag, bulletspeed ;
-} params = {   0.005,      6, 0.9, 0.03 };
+    float movespeed, rotspeed, drag, bulletspeed, enemyspeed ;
+} params = {   0.005,      6,  0.9,         0.03, 0.01 };
 
-void init()
+float mag_squared(const bml::Vec& vec)
 {
+    return vec.x * vec.x + vec.y * vec.y;
+}
+
+void init(GameState& state)
+{
+    for (int i = 0; i < MAX_ENEMIES; ++i)
+    {
+      state.enemies[i].pos.x = (rand() % MAX_ENEMIES) / (float)MAX_ENEMIES;
+      state.enemies[i].pos.y = (rand() % MAX_ENEMIES) / (float)MAX_ENEMIES;
+      state.enemies[i].vel.x = (rand() % MAX_ENEMIES) / (float)MAX_ENEMIES;
+      state.enemies[i].vel.y = (rand() % MAX_ENEMIES) / (float)MAX_ENEMIES;
+      state.enemies[i].life = 1;
+    }
 }
 
 void update(GameState& state, const Input& input)
@@ -46,10 +59,41 @@ void update(GameState& state, const Input& input)
     // Bullets
     for (int i = 0; i < MAX_BULLETS; ++i)
     {
-        _GameState::_Bullet& b = state.bullets[i];
+        Bullet& b = state.bullets[i];
         b.life--;
         b.pos += b.vel * params.bulletspeed;
     }
+
+    // Enemies
+    for (int i = 0; i < MAX_ENEMIES; ++i)
+    {
+        Enemy& e = state.enemies[i];
+        e.pos += e.vel * params.enemyspeed;
+        if (e.pos.x < -1.0) e.pos.x += 2.0;
+        if (e.pos.y < -1.0) e.pos.y += 2.0;
+        if (e.pos.x > 1.0) e.pos.x -= 2.0;
+        if (e.pos.y > 1.0) e.pos.y -= 2.0;
+    }
+
+    // Collisions
+    for (int i = 0; i < MAX_BULLETS; ++i)
+    for (int j = 0; j < MAX_ENEMIES; ++j)
+    {
+        Bullet& b = state.bullets[i];
+        Enemy& e = state.enemies[j];
+
+        // Skip dead bullets or entities
+        if (b.life <= 0) continue;
+        if (e.life <= 0) continue;
+
+        bml::Vec v = b.pos - e.pos;
+        if (mag_squared(v) < 0.005) // TODO track size/hitbox
+        {
+          e.life -= 0.1;
+          b.life = 0;
+        }
+    }
+
 }
 
 }

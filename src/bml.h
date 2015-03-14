@@ -16,6 +16,7 @@ static std::ostream& logger = std::cout;
 typedef struct _Vec {
     float x;
     float y;
+
 } Vec;
 
 static Vec operator -(const Vec& lhs, const Vec& rhs)
@@ -65,20 +66,33 @@ typedef struct _Input {
 
 
 const int MAX_BULLETS = 500;
+typedef struct _Bullet {
+    float life;
+    bml::Vec pos;
+    bml::Vec vel;
+} Bullet;
+
+const int MAX_ENEMIES = 12;
+typedef struct _Enemy {
+    float life;
+    bml::Vec pos;
+    bml::Vec vel;
+} Enemy;
 
 typedef struct _GameState {
+
+    Bullet bullets[MAX_BULLETS];
+    int next_bullet;
+
+    Enemy enemies[MAX_ENEMIES];
+    int next_enemy;
+
     struct _Player {
         bml::Vec pos;
         bml::Vec vel;
         float rotation; // radians
         bml::Vec reticle;
     } player;
-    struct _Bullet {
-        float life;
-        bml::Vec pos;
-        bml::Vec vel;
-    } bullets[MAX_BULLETS];
-    int next_bullet;
 } GameState;
 
 namespace gfx
@@ -89,6 +103,6 @@ void render(GameState& state, u32 ticks, bool debug);
 
 namespace game
 {
-void init();
+void init(GameState& state);
 void update(GameState& state, const Input& input);
 }

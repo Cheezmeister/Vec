@@ -96,10 +96,10 @@ Input handle_input()
 void loop()
 {
 
-    gfx::init();
-    game::init();
-
     GameState state = {0};
+
+    gfx::init();
+    game::init(state);
 
     SDL_ShowCursor(SDL_DISABLE);
 
