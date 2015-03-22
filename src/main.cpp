@@ -22,6 +22,7 @@ typedef struct _Dimension2 {
 SDL_Window* win;
 Args args;
 Dimension2 viewport;
+SDL_GameController* controller = NULL;
 
 int parse_args(int argc, char** argv, Args* outArgs)
 {
@@ -39,6 +40,13 @@ int parse_args(int argc, char** argv, Args* outArgs)
     return 0;
 }
 
+float get_axis(SDL_GameControllerAxis which, float deadzone)
+{
+  float normalized = SDL_GameControllerGetAxis(controller, which) / (float)32767;
+  if (fabs(normalized) < deadzone) return 0;
+  return normalized;
+}
+
 Input handle_input()
 {
     Input ret = {0};
@@ -51,7 +59,7 @@ Input handle_input()
         if (event.type == SDL_KEYDOWN)
         {
             if (event.key.keysym.sym == SDLK_ESCAPE) ret.quit = true;
-            if (event.key.keysym.sym == SDLK_SPACE) ret.shot = true;
+            if (event.key.keysym.sym == SDLK_SPACE) ret.shoot = true;
         }
 
         if (event.type == SDL_WINDOWEVENT)
@@ -65,6 +73,14 @@ Input handle_input()
                 int max = x > y ? x : y;
 
                 glViewport(0, 0, max, max);
+            }
+        }
+
+        if (event.type == SDL_CONTROLLERBUTTONDOWN)
+        {
+            if (event.cbutton.button & SDL_CONTROLLER_BUTTON_LEFTSHOULDER)
+            {
+                ret.shoot = true;
             }
         }
     }
@@ -82,16 +98,22 @@ Input handle_input()
     ret.axes.y2 = mouse.y * 2.0 / viewport.y - 1.0;
     ret.axes.y2 *= -1;
 
-
     // Poll keyboard
     const Uint8* keystate = SDL_GetKeyboardState(NULL);
-    ret.axes.y1  = 1.0 * (keystate[SDL_SCANCODE_W]);
+    ret.axes.y1 += 1.0 * (keystate[SDL_SCANCODE_W]);
     ret.axes.y1 -= 1.0 * (keystate[SDL_SCANCODE_S]);
-    ret.axes.x1  = 1.0 * (keystate[SDL_SCANCODE_D]);
+    ret.axes.x1 += 1.0 * (keystate[SDL_SCANCODE_D]);
     ret.axes.x1 -= 1.0 * (keystate[SDL_SCANCODE_A]);
+
+    // Poll sticks
+    float deadzone = 0.15;
+    ret.axes.x1 += get_axis(SDL_CONTROLLER_AXIS_LEFTX, deadzone);
+    ret.axes.x2 += get_axis(SDL_CONTROLLER_AXIS_RIGHTX, deadzone);
+    ret.axes.y1 -= get_axis(SDL_CONTROLLER_AXIS_LEFTY, deadzone);
+    ret.axes.y2 -= get_axis(SDL_CONTROLLER_AXIS_RIGHTY, deadzone);
+
     return ret;
 }
-
 
 void loop()
 {
@@ -146,26 +168,30 @@ int scratch()
 }
 int main ( int argc, char** argv )
 {
-    int ret = parse_args(argc, argv, &args);
-    if (ret) return ret;
+    int code = parse_args(argc, argv, &args);
+    if (code) return code;
 
     srand(time(NULL));
 
-    if (SDL_Init(SDL_INIT_VIDEO) < 0)
+    // Fire up SDL
+    if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
     {
         cerr << "Couldn't init SDL";
         return 1;
     }
 
+    // Open a window
     viewport.x = 400;
     viewport.y = 400;
-    win = SDL_CreateWindow("SDL2/GL4.3", 0, 0, viewport.x, viewport.y, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+    Uint32 flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
+    win = SDL_CreateWindow("Vec", 0, 0, viewport.x, viewport.y, flags);
     if (win == NULL)
     {
         cerr << "Couldn't set video mode";
         return 2;
     }
 
+    // Massage OpenGL
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
@@ -177,6 +203,7 @@ int main ( int argc, char** argv )
         return 3;
     }
 
+    // Massage GL some more
     GLenum err = glewInit();
     if (GLEW_OK != err)
     {
@@ -186,8 +213,21 @@ int main ( int argc, char** argv )
 
     print_info();
 
+    // Use the gamepad, if one is connected. First one we find.
+    for (int i = 0; i < SDL_NumJoysticks(); ++i)
+    {
+        if (SDL_IsGameController(i))
+        {
+            cout << "Detected game controller in slot " << i << endl;
+            controller = SDL_GameControllerOpen(i);
+            break;
+        }
+    }
+
     loop();
 
+    // Clean up and gtfo
+    SDL_GameControllerClose(controller); // safe even if controller == NULL
     SDL_GL_DeleteContext(context);
     SDL_Quit();
     return 0;
