@@ -56,12 +56,29 @@ void update(GameState& state, const Input& input)
         state.bullets[i].pos = state.player.pos;
     }
 
+    // Pooping
+    if (input.poop)
+    {
+        int i = state.next_turd;
+        ++state.next_turd %= MAX_TURDS;
+        state.turds[i].pos = state.player.pos;
+        state.turds[i].rotation = state.player.rotation;
+        state.turds[i].life = 1;
+    }
+
     // Bullets
     for (int i = 0; i < MAX_BULLETS; ++i)
     {
         Bullet& b = state.bullets[i];
         b.life--;
         b.pos += b.vel * params.bulletspeed;
+    }
+
+    // Turds
+    for (int i = 0; i < MAX_TURDS; ++i)
+    {
+        Turd& t = state.turds[i];
+        t.life -= 0.01;
     }
 
     // Enemies

@@ -94,6 +94,7 @@ Input handle_input()
     mouse.buttons = SDL_GetMouseState(&mouse.x, &mouse.y);
 
     ret.shoot |= (mouse.buttons & SDL_BUTTON(1));
+    ret.poop |= (mouse.buttons & SDL_BUTTON(2));
     ret.axes.x2 = mouse.x * 2.0 / viewport.x - 1.0;
     ret.axes.y2 = mouse.y * 2.0 / viewport.y - 1.0;
     ret.axes.y2 *= -1;
@@ -104,6 +105,7 @@ Input handle_input()
     ret.axes.y1 -= 1.0 * (keystate[SDL_SCANCODE_S]);
     ret.axes.x1 += 1.0 * (keystate[SDL_SCANCODE_D]);
     ret.axes.x1 -= 1.0 * (keystate[SDL_SCANCODE_A]);
+    ret.poop |= (0 != keystate[SDL_SCANCODE_R]);
 
     // Poll sticks
     float deadzone = 0.15;

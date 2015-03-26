@@ -59,8 +59,11 @@ typedef struct _Input {
     } axes;
 
     bool pause;
-    bool shoot; // fire is held
-    bool shot; // fire was pressed
+
+    bool shoot; // primary fire is held
+    bool poop; // primary poop is held
+    bool auxshoot; // aux fire was pressed
+    bool auxpoop; // aux poop was pressed
 
 } Input;
 
@@ -71,6 +74,13 @@ typedef struct _Bullet {
     bml::Vec pos;
     bml::Vec vel;
 } Bullet;
+
+const int MAX_TURDS = 50;
+typedef struct _Turd {
+    float rotation;
+    float life;
+    bml::Vec pos;
+} Turd;
 
 const int MAX_ENEMIES = 12;
 typedef struct _Enemy {
@@ -83,6 +93,9 @@ typedef struct _GameState {
 
     Bullet bullets[MAX_BULLETS];
     int next_bullet;
+
+    Turd turds[MAX_TURDS];
+    int next_turd;
 
     Enemy enemies[MAX_ENEMIES];
     int next_enemy;

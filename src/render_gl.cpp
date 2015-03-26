@@ -96,6 +96,7 @@ typedef struct _RenderState {
         GLuint player;
         GLuint reticle;
         GLuint viewport;
+        GLuint turd;
     } shaders;
     struct _VBOs {
         VBO player;
@@ -276,9 +277,9 @@ void init()
                       "  float rphase = ticks / 2 / 1000.0;"
                       "  float gphase = ticks / 5 / 1000.0;"
                       "  float bphase = ticks / 7.0 / 1000.0;"
-                      "  float r = 0.2 + 0.8 * sin(rphase * mPI); "
+                      "  float r = 0.3 + 0.7 * sin(rphase * mPI); "
                       "  float g = 0.5 + 0.5 * sin(gphase * mPI); "
-                      "  float b = 0.2 + 0.8 * sin(bphase * mPI); "
+                      "  float b = 0.3 + 0.7 * sin(bphase * mPI); "
                       "  gl_FragColor = vec4(r, g, b, 0); "
                       "} "
     );
@@ -287,13 +288,14 @@ void init()
                       "#version 120 \n"
                       "varying vec4 glPos; "
                       "uniform float ticks; "
+                      "uniform float a; "
                       "const float mPI = 3.14159;"
                       "void main() { "
                       "  float phase = ticks * 1 / 1000.0;"
                       "  float r = 0.0;"
                       "  float g = 0.0 + 0.9 * sin(phase * mPI); "
                       "  float b = 0.0 + 0.9 * cos(phase * mPI);"
-                      "  gl_FragColor = vec4(r, g, b, 0); "
+                      "  gl_FragColor = vec4(r, g, b, a); "
                       "} "
     );
     // Set up VBO
@@ -313,9 +315,10 @@ void init()
     renderstate.shaders.player = make_shader(vs_pulse, fs_scintillate);
     renderstate.shaders.reticle = make_shader(vs_pulse, fs_pulse);
     renderstate.shaders.viewport = make_shader(vs_pulse, fs_scintillate);
+    renderstate.shaders.turd = make_shader(vs_pulse, fs_pulse);
 
     // Misc setup
-    glClearColor(1.0f, 0.0f, 1.0f, 0.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     check_error("clearcolor");
 }
 
@@ -371,7 +374,7 @@ void render(GameState& state, u32 ticks, bool debug)
     set_uniform(shader, "scale", 1);
     draw_array(renderstate.vbo.reticle);
 
-    // Render bullets
+    // Render bullets, enemies and turds
     for (int i = 0; i < MAX_BULLETS; ++i)
     {
         if (state.bullets[i].life <= 0) continue;
@@ -382,6 +385,20 @@ void render(GameState& state, u32 ticks, bool debug)
         set_uniform(shader, "offset", state.bullets[i].pos);
         set_uniform(shader, "rotation", ticks / 100.0f);
         set_uniform(shader, "scale", 0.2);
+        set_uniform(shader, "ticks", ticks);
+        draw_array(vbo);
+    }
+    for (int i = 0; i < MAX_TURDS; ++i)
+    {
+        if (state.turds[i].life <= 0) continue;
+
+        shader = renderstate.shaders.reticle;
+        vbo = renderstate.vbo.player;
+        glUseProgram(shader);
+        set_uniform(shader, "offset", state.turds[i].pos);
+        set_uniform(shader, "scale", 0.2 + 0.5 * (1.0 - state.turds[i].life));
+        set_uniform(shader, "rotation", state.turds[i].rotation);
+        set_uniform(shader, "a", state.turds[i].life);
         set_uniform(shader, "ticks", ticks);
         draw_array(vbo);
     }
