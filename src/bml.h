@@ -1,7 +1,13 @@
 #include <iostream>
+#include <cstdint>
+#include <string>
 
 #ifndef NULL
 #define NULL 0
+#endif
+
+#ifndef M_PI
+#define M_PI 3.1415926536
 #endif
 
 #define DEBUGVAR(x) bml::debug << #x " is " << x << endl;

@@ -1,8 +1,7 @@
 #include <iostream>
 #include <ctime>
-#include <GL/glew.h>
-#include <OpenGL/gl.h>
-#include "/usr/local/Cellar/sdl2/2.0.3/include/SDL2/SDL.h"
+#include "crossgl.h"
+#include "SDL.h"
 #include "bml.h"
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -166,7 +165,9 @@ int scratch()
 {
     return 0;
 }
-int main ( int argc, char** argv )
+
+extern "C"
+int main(int argc, char** argv)
 {
     int code = parse_args(argc, argv, &args);
     if (code) return code;

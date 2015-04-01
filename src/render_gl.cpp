@@ -1,5 +1,5 @@
 #include <cmath>
-#include <OpenGL/gl.h>
+#include "crossgl.h"
 #include "bml.h"
 
 // http://stackoverflow.com/a/13874526

@@ -2,10 +2,10 @@
 cmake_minimum_required(VERSION 2.6)
 
 #definitions
-set(PROJECT_NAME "Jamboot")
-set(APP_NAME jam)
+set(PROJECT_NAME "Vec")
+set(APP_NAME vec)
 set(PROJECT_VERSION 1 0 0)
-set(DESCRIPTION "playtime")
+set(DESCRIPTION "Dual-mouse arcade thing")
 set(README README.txt)
 set(LICENSE ${README})
 set(AUTHORS "Brendan Luchen")
@@ -29,7 +29,9 @@ find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
 list(APPEND EXTRA_INCLUDE_DIRECTORIES ${SDL_INCLUDE_DIR})
 list(APPEND EXTRA_INCLUDE_DIRECTORIES ${OPENGL_INCLUDE_DIR})
+list(APPEND EXTRA_INCLUDE_DIRECTORIES ${GLEW_INCLUDE_DIR})
 list(APPEND LINKED_LIBS ${SDL_LIBRARY})
+list(APPEND LINKED_LIBS ${SDLMAIN_LIBRARY})
 list(APPEND LINKED_LIBS ${OPENGL_LIBRARY})
 list(APPEND LINKED_LIBS ${GLEW_LIBRARY})
 
@@ -43,8 +45,6 @@ list(APPEND SOURCES
 
 #declare the target program
 add_executable(${APP_NAME} ${SOURCES} ${EXTRA_SOURCES} ${HEADERS})
-add_executable(test_gfx src/test_gfx.cpp)
-
 
 #add some useful preprocessor defines
 set_property(
@@ -56,12 +56,8 @@ set_property(
 set_target_properties(${APP_NAME} PROPERTIES
   OUTPUT_NAME "${APP_NAME}-${VERSION_STRING}${APP_SUFFIX}"
 )
-#pass on the flags
-# set(CMAKE_CXX_FLAGS ${COMPILE_FLAGS} ${CMAKE_CXX_FLAGS} )
-# set(CMAKE_C_FLAGS   ${COMPILE_FLAGS} ${CMAKE_C_FLAGS} )
 
 target_link_libraries(${APP_NAME} ${LINKED_LIBS})
-target_link_libraries(test_gfx ${LINKED_LIBS})
 include_directories(${EXTRA_INCLUDE_DIRECTORIES})
 
 #install the binary to bin under the install directory
@@ -75,8 +71,4 @@ install(FILES ${DLLFILES}
     DESTINATION bin
 )
 
-
-
-
 include(CPack)
-
