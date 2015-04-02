@@ -95,6 +95,7 @@ typedef struct _RenderState {
     struct _Shaders {
         GLuint player;
         GLuint reticle;
+        GLuint enemy;
         GLuint viewport;
         GLuint turd;
     } shaders;
@@ -246,8 +247,38 @@ GLuint make_shader(GLuint vertex, GLuint fragment)
 
 void init()
 {
+#define INCLUDE_COMMON_GLSL \
+  "float ncos(float a) {" \
+  "  return 0.5 + cos(a)/2;" \
+  "}" \
+  "float nsin(float a) {" \
+  "  return 0.5 + sin(a)/2;" \
+  "}" \
+
     // Compile shaders
     GLuint vs_pulse = arcsynthesis::CreateShader(GL_VERTEX_SHADER,
+                    "#version 120  \n"
+                    "attribute vec4 inPos; "
+                    "uniform vec2 offset; "
+                    "uniform float rotation; "
+                    "uniform float ticks; "
+                    "uniform float scale = 1;"
+                    "varying vec4 glPos; "
+                    "const float frequency = 2;"
+                    "const float mPI = 3.14159;"
+                    INCLUDE_COMMON_GLSL
+                    "void main() { "
+                    "  vec2 rotated;"
+                    "  rotated.x = inPos.x * cos(rotation) - inPos.y * sin(rotation);"
+                    "  rotated.y = inPos.x * sin(rotation) + inPos.y * cos(rotation);"
+                    "  float phase = ticks * frequency / 1000.0;"
+                    "  vec2 pos = rotated * (0.2 + 0.02 * sin(phase * mPI));"
+                    "  pos *= scale;"
+                    "  gl_Position = glPos = vec4(offset + pos, 0, 1); "
+                    "} "
+    );
+
+    GLuint vs_wiggle = arcsynthesis::CreateShader(GL_VERTEX_SHADER,
                     "#version 120  \n"
                     "attribute vec4 inPos; "
                     "uniform vec2 offset; "
@@ -264,6 +295,8 @@ void init()
                     "  float phase = ticks * frequency / 1000.0;"
                     "  vec2 pos = rotated * (0.2 + 0.02 * sin(phase * mPI));"
                     "  pos *= scale;"
+                    "  pos.x += 0.01 * (inPos.x - inPos.y) * cos(phase * mPI);"
+                    "  pos.y += 0.01 * (inPos.x - inPos.y) * sin(phase * mPI);"
                     "  gl_Position = glPos = vec4(offset + pos, 0, 1); "
                     "} "
     );
@@ -273,13 +306,14 @@ void init()
                       "varying vec4 glPos; "
                       "uniform float ticks; "
                       "const float mPI = 3.14159;"
+                      INCLUDE_COMMON_GLSL
                       "void main() { "
                       "  float rphase = ticks / 2 / 1000.0;"
                       "  float gphase = ticks / 5 / 1000.0;"
                       "  float bphase = ticks / 7.0 / 1000.0;"
-                      "  float r = 0.3 + 0.7 * sin(rphase * mPI); "
-                      "  float g = 0.5 + 0.5 * sin(gphase * mPI); "
-                      "  float b = 0.3 + 0.7 * sin(bphase * mPI); "
+                      "  float r = 0.3 + 0.7 * nsin(rphase * mPI); "
+                      "  float g = 0.5 + 0.5 * nsin(gphase * mPI); "
+                      "  float b = 0.3 + 0.7 * nsin(bphase * mPI); "
                       "  gl_FragColor = vec4(r, g, b, 0); "
                       "} "
     );
@@ -290,11 +324,12 @@ void init()
                       "uniform float ticks; "
                       "uniform float a; "
                       "const float mPI = 3.14159;"
+                      INCLUDE_COMMON_GLSL
                       "void main() { "
                       "  float phase = ticks * 1 / 1000.0;"
                       "  float r = 0.0;"
-                      "  float g = 0.0 + 0.9 * sin(phase * mPI); "
-                      "  float b = 0.0 + 0.9 * cos(phase * mPI);"
+                      "  float g = 0.0 + 0.9 * nsin(phase * mPI); "
+                      "  float b = 0.0 + 0.9 * ncos(phase * mPI);"
                       "  gl_FragColor = vec4(r, g, b, a); "
                       "} "
     );
@@ -312,8 +347,10 @@ void init()
     renderstate.vbo.viewport.size = 4;
 
     // Init shaders
+    // TODO profile this
     renderstate.shaders.player = make_shader(vs_pulse, fs_scintillate);
-    renderstate.shaders.reticle = make_shader(vs_pulse, fs_pulse);
+    renderstate.shaders.reticle = make_shader(vs_wiggle, fs_pulse);
+    renderstate.shaders.enemy = make_shader(vs_wiggle, fs_pulse);
     renderstate.shaders.viewport = make_shader(vs_pulse, fs_scintillate);
     renderstate.shaders.turd = make_shader(vs_pulse, fs_pulse);
 
@@ -330,7 +367,7 @@ void render(GameState& state, u32 ticks, bool debug)
 
     // Clear
     glClear(GL_COLOR_BUFFER_BIT);
-    check_error("clearing to pink");
+    check_error("clearing to black");
 
     // Render viewport indicator thingie
     if (debug)
@@ -369,8 +406,8 @@ void render(GameState& state, u32 ticks, bool debug)
     shader = renderstate.shaders.reticle;
     glUseProgram(shader);
     set_uniform(shader, "offset", state.player.reticle);
-    set_uniform(shader, "scale", 1);
     set_uniform(shader, "rotation", ticks / 1000.0f);
+    set_uniform(shader, "ticks", ticks);
     set_uniform(shader, "scale", 1);
     draw_array(renderstate.vbo.reticle);
 
@@ -398,7 +435,6 @@ void render(GameState& state, u32 ticks, bool debug)
         set_uniform(shader, "offset", state.turds[i].pos);
         set_uniform(shader, "scale", 0.2 + 0.5 * (1.0 - state.turds[i].life));
         set_uniform(shader, "rotation", state.turds[i].rotation);
-        set_uniform(shader, "a", state.turds[i].life);
         set_uniform(shader, "ticks", ticks);
         draw_array(vbo);
     }
@@ -406,7 +442,7 @@ void render(GameState& state, u32 ticks, bool debug)
     {
         if (state.enemies[i].life <= 0) continue;
 
-        shader = renderstate.shaders.player;
+        shader = renderstate.shaders.enemy;
         vbo = renderstate.vbo.reticle;
         glUseProgram(shader);
         set_uniform(shader, "offset", state.enemies[i].pos);
