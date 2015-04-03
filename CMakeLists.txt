@@ -27,9 +27,12 @@ project(${PROJECT_NAME} VERSION ${VERSION_STRING})
 find_package(SDL REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
+
+# Slap together search paths
 list(APPEND EXTRA_INCLUDE_DIRECTORIES ${SDL_INCLUDE_DIR})
 list(APPEND EXTRA_INCLUDE_DIRECTORIES ${OPENGL_INCLUDE_DIR})
 list(APPEND EXTRA_INCLUDE_DIRECTORIES ${GLEW_INCLUDE_DIR})
+list(APPEND EXTRA_INCLUDE_DIRECTORIES vendor/manymouse)
 list(APPEND LINKED_LIBS ${SDL_LIBRARY})
 list(APPEND LINKED_LIBS ${SDLMAIN_LIBRARY})
 list(APPEND LINKED_LIBS ${OPENGL_LIBRARY})
@@ -41,6 +44,12 @@ list(APPEND SOURCES
   src/main.cpp 
   src/game.cpp 
   src/render_gl.cpp
+  vendor/manymouse/windows_wminput.c
+  vendor/manymouse/manymouse.c
+  vendor/manymouse/macosx_hidmanager.c
+  vendor/manymouse/macosx_hidutilities.c
+  vendor/manymouse/linux_evdev.c
+  vendor/manymouse/x11_xinput2.c
 )
 
 #declare the target program
