@@ -3,7 +3,7 @@
 #include <Windows.h>
 #include <GL/glew.h>
 #include <GL/gl.h>
-#elif __APPLE__ 
+#elif __APPLE__
 #include <GL/glew.h>
 #include <OpenGL/gl.h>
 #else

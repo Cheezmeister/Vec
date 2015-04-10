@@ -4,8 +4,8 @@
 namespace game {
 
 struct _GameParams {
-    float movespeed, rotspeed, drag, bulletspeed, enemyspeed ;
-} params = {   0.005,      6,  0.9,         0.03, 0.01 };
+    float movespeed, rotspeed, drag, bulletspeed, enemyspeed, hitbox ;
+} params = {   0.005,      6,  0.9,         0.03, 0.01,       0.005 };
 
 float mag_squared(const bml::Vec& vec)
 {
@@ -14,13 +14,15 @@ float mag_squared(const bml::Vec& vec)
 
 void init(GameState& state)
 {
+    state.player.life = 1;
+    state.player.size = 1;
     for (int i = 0; i < MAX_ENEMIES; ++i)
     {
-      state.enemies[i].pos.x = (rand() % MAX_ENEMIES) / (float)MAX_ENEMIES;
-      state.enemies[i].pos.y = (rand() % MAX_ENEMIES) / (float)MAX_ENEMIES;
-      state.enemies[i].vel.x = (rand() % MAX_ENEMIES) / (float)MAX_ENEMIES;
-      state.enemies[i].vel.y = (rand() % MAX_ENEMIES) / (float)MAX_ENEMIES;
-      state.enemies[i].life = 1;
+        state.enemies[i].pos.x = (rand() % MAX_ENEMIES) / (float)MAX_ENEMIES;
+        state.enemies[i].pos.y = (rand() % MAX_ENEMIES) / (float)MAX_ENEMIES;
+        state.enemies[i].vel.x = (rand() % MAX_ENEMIES) / (float)MAX_ENEMIES;
+        state.enemies[i].vel.y = (rand() % MAX_ENEMIES) / (float)MAX_ENEMIES;
+        state.enemies[i].life = 1;
     }
 }
 
@@ -93,23 +95,52 @@ void update(GameState& state, const Input& input)
     }
 
     // Collisions
-    for (int i = 0; i < MAX_BULLETS; ++i)
     for (int j = 0; j < MAX_ENEMIES; ++j)
     {
-        Bullet& b = state.bullets[i];
         Enemy& e = state.enemies[j];
 
-        // Skip dead bullets or entities
-        if (b.life <= 0) continue;
+        // skip dead ents
         if (e.life <= 0) continue;
 
-        bml::Vec v = b.pos - e.pos;
-        if (mag_squared(v) < 0.005) // TODO track size/hitbox
+        if (mag_squared(state.player.pos - e.pos) < params.hitbox)
         {
-          e.life -= 0.1;
-          b.life = 0;
+            if (state.player.size <= 1)
+                state.player.size -= 0.1;
+            else
+                state.player.size *= 0.5;
+        }
+
+        for (int i = 0; i < MAX_BULLETS; ++i)
+        {
+            Bullet& b = state.bullets[i];
+
+            // Skip dead bullets
+            if (b.life <= 0) continue;
+
+            if (mag_squared(b.pos - e.pos) < params.hitbox) // TODO track size/hitbox
+            {
+                e.life -= 0.1;
+                b.life = 0;
+            }
         }
     }
+    for (int i = 0; i < MAX_BULLETS; ++i)
+    {
+        Bullet& b = state.bullets[i];
+
+        // Skip dead bullets
+        if (b.life <= 0) continue;
+
+        if (mag_squared(b.pos - state.player.pos) < params.hitbox && b.life < 800)
+        {
+            state.player.size *= 1.1;
+            b.life = 0;
+        }
+    }
+
+    // Game Over
+    if (state.player.life <= 0)
+        state.over = true;
 
 }
 

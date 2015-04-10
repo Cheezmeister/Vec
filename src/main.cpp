@@ -42,30 +42,30 @@ int parse_args(int argc, char** argv, Args* outArgs)
 
 float get_axis(SDL_GameControllerAxis which, float deadzone)
 {
-  float normalized = SDL_GameControllerGetAxis(controller, which) / (float)32767;
-  if (fabs(normalized) < deadzone) return 0;
-  return normalized;
+    float normalized = SDL_GameControllerGetAxis(controller, which) / (float)32767;
+    if (fabs(normalized) < deadzone) return 0;
+    return normalized;
 }
 
 Input handle_input()
 {
     Input ret = {0};
 
-	// ManyMouse gives us events, but not current mouse state. Record that here.
-	static struct InputState {
-		struct _Axes {
-			float x1;
-			float x2;
-			float y1;
-			float y2;
-		} axes;
-		struct _Buttons {
-			bool left1; // left-click (technically, primary click) on left mouse 
-			bool right1; // right-click, left mouse
-			bool left2; // left-click, right mouse
-			bool right2; // right-click, right mouse
-		} button;
-	} state;
+    // ManyMouse gives us events, but not current mouse state. Record that here.
+    static struct InputState {
+        struct _Axes {
+            float x1;
+            float x2;
+            float y1;
+            float y2;
+        } axes;
+        struct _Buttons {
+            bool left1; // left-click (technically, primary click) on left mouse
+            bool right1; // right-click, left mouse
+            bool left2; // left-click, right mouse
+            bool right2; // right-click, right mouse
+        } button;
+    } state;
 
     // SDL events
     SDL_Event event;
@@ -94,61 +94,61 @@ Input handle_input()
 
         if (event.type == SDL_CONTROLLERBUTTONDOWN)
         {
-			if (event.cbutton.button & SDL_CONTROLLER_BUTTON_LEFTSHOULDER)
-			{
-				ret.shoot = true;
-			}
-		}
+            if (event.cbutton.button & SDL_CONTROLLER_BUTTON_LEFTSHOULDER)
+            {
+                ret.shoot = true;
+            }
+        }
     }
 
-	// ManyMouse events
-	ManyMouseEvent mme;
-	while (ManyMouse_PollEvent(&mme))
-	{
-		// NOTE interestingly, it seems that having a fake mouse connected via Synergy
-		//      will consume device slot 0, but won't produce events for ManyMouse. 
-		//      That's just a guess. And what happens if you have a gazillion mice!?
-		const int leftmouse = 1;
-		const int rightmouse = 2;
+    // ManyMouse events
+    ManyMouseEvent mme;
+    while (ManyMouse_PollEvent(&mme))
+    {
+        // NOTE interestingly, it seems that having a fake mouse connected via Synergy
+        //      will consume device slot 0, but won't produce events for ManyMouse.
+        //      That's just a guess. And what happens if you have a gazillion mice!?
+        const int leftmouse = 1;
+        const int rightmouse = 2;
 
-		if (mme.type == MANYMOUSE_EVENT_RELMOTION)
-		{
-			// TODO Determine 'left' vs. 'right' from device no.
-			// NOTE 'item' indicates which axis, 'device' indicates which mouse
-			float& axis = mme.item == 0 ? 
-				(mme.device == leftmouse ? state.axes.x1 : state.axes.x2) :
-				(mme.device == leftmouse ? state.axes.y1 : state.axes.y2);
-			float value = mme.value / (mme.item == 0 ? viewport.x : -viewport.y);
-			axis += value;
-		}
-		else if (mme.type == MANYMOUSE_EVENT_BUTTON)
-		{
-			bool pressed = (mme.value == 1);
-			if (mme.device == rightmouse)
-			{
-				if (mme.item == 0)
-					state.button.left2 = pressed;
-				else if (mme.item == 1)
-					state.button.right2 = pressed;
-			}
-			else
-			{
-				if (mme.item == 0)
-					state.button.left1 = pressed;
-				else if (mme.item == 1)
-					state.button.right1 = pressed;
-			}
-		}
-		// TODO Do we need ABSMOTION for some platforms?
-	}
+        if (mme.type == MANYMOUSE_EVENT_RELMOTION)
+        {
+            // TODO Determine 'left' vs. 'right' from device no.
+            // NOTE 'item' indicates which axis, 'device' indicates which mouse
+            float& axis = mme.item == 0 ?
+                          (mme.device == leftmouse ? state.axes.x1 : state.axes.x2) :
+                          (mme.device == leftmouse ? state.axes.y1 : state.axes.y2);
+            float value = mme.value / (mme.item == 0 ? viewport.x : -viewport.y);
+            axis += value;
+        }
+        else if (mme.type == MANYMOUSE_EVENT_BUTTON)
+        {
+            bool pressed = (mme.value == 1);
+            if (mme.device == rightmouse)
+            {
+                if (mme.item == 0)
+                    state.button.left2 = pressed;
+                else if (mme.item == 1)
+                    state.button.right2 = pressed;
+            }
+            else
+            {
+                if (mme.item == 0)
+                    state.button.left1 = pressed;
+                else if (mme.item == 1)
+                    state.button.right1 = pressed;
+            }
+        }
+        // TODO Do we need ABSMOTION for some platforms?
+    }
 
-	// Process MM state
-	ret.axes.x1 += state.axes.x1;
-	ret.axes.x2 += state.axes.x2;
-	ret.axes.y1 += state.axes.y1;
-	ret.axes.y2 += state.axes.y2;
-	ret.shoot |= state.button.left2 || state.button.left1;
-	ret.poop |= state.button.right2 || state.button.right1;
+    // Process MM state
+    ret.axes.x1 += state.axes.x1;
+    ret.axes.x2 += state.axes.x2;
+    ret.axes.y1 += state.axes.y1;
+    ret.axes.y2 += state.axes.y2;
+    ret.shoot |= state.button.left2 || state.button.left1;
+    ret.poop |= state.button.right2 || state.button.right1;
 
     // Poll keyboard
     const Uint8* keystate = SDL_GetKeyboardState(NULL);
@@ -164,8 +164,8 @@ Input handle_input()
     ret.axes.x2 += get_axis(SDL_CONTROLLER_AXIS_RIGHTX, deadzone);
     ret.axes.y1 -= get_axis(SDL_CONTROLLER_AXIS_LEFTY, deadzone);
     ret.axes.y2 -= get_axis(SDL_CONTROLLER_AXIS_RIGHTY, deadzone);
-	ret.auxpoop |= (get_axis(SDL_CONTROLLER_AXIS_TRIGGERLEFT, deadzone) > 0.8);
-	ret.poop    |= (get_axis(SDL_CONTROLLER_AXIS_TRIGGERRIGHT, deadzone) > 0.8);
+    ret.auxpoop |= (get_axis(SDL_CONTROLLER_AXIS_TRIGGERLEFT, deadzone) > 0.8);
+    ret.poop    |= (get_axis(SDL_CONTROLLER_AXIS_TRIGGERRIGHT, deadzone) > 0.8);
 
     return ret;
 }
@@ -180,7 +180,7 @@ void loop()
 
     SDL_ShowCursor(SDL_DISABLE);
 
-    while (true)
+    while (!state.over)
     {
         // Timing
         u32 ticks = SDL_GetTicks();
@@ -247,8 +247,8 @@ int main(int argc, char** argv)
         cerr << "Couldn't set video mode";
         return 2;
     }
-	SDL_SetWindowPosition(win, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-	SDL_SetRelativeMouseMode(SDL_TRUE);
+    SDL_SetWindowPosition(win, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+    SDL_SetRelativeMouseMode(SDL_TRUE);
 
     // Massage OpenGL
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
@@ -270,11 +270,11 @@ int main(int argc, char** argv)
         return 4;
     }
 
-	// Fire up ManyMouse
-	if (ManyMouse_Init() < 0)
-	{
-		cerr << "Couldn't init ManyMouse! Mouse input may be busted.";
-	}
+    // Fire up ManyMouse
+    if (ManyMouse_Init() < 0)
+    {
+        cerr << "Couldn't init ManyMouse! Mouse input may be busted.";
+    }
 
     print_info();
 
@@ -294,7 +294,7 @@ int main(int argc, char** argv)
     loop();
 
     // Clean up and gtfo
-	ManyMouse_Quit();
+    ManyMouse_Quit();
     SDL_GameControllerClose(controller); // safe even if controller == NULL
     SDL_GL_DeleteContext(context);
     SDL_Quit();
