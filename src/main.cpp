@@ -3,7 +3,7 @@
 #include "crossgl.h"
 #include "SDL.h"
 #include "manymouse.h"
-#include "bml.h"
+#include "vec.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 using namespace std;
@@ -159,15 +159,29 @@ Input handle_input()
     ret.poop |= (0 != keystate[SDL_SCANCODE_R]);
 
     // Poll sticks
-    float deadzone = 0.15;
+    float deadzone = 0.05;
     ret.axes.x1 += get_axis(SDL_CONTROLLER_AXIS_LEFTX, deadzone);
     ret.axes.x2 += get_axis(SDL_CONTROLLER_AXIS_RIGHTX, deadzone);
     ret.axes.y1 -= get_axis(SDL_CONTROLLER_AXIS_LEFTY, deadzone);
     ret.axes.y2 -= get_axis(SDL_CONTROLLER_AXIS_RIGHTY, deadzone);
-    ret.auxpoop |= (get_axis(SDL_CONTROLLER_AXIS_TRIGGERLEFT, deadzone) > 0.8);
+    ret.shoot   |= (get_axis(SDL_CONTROLLER_AXIS_TRIGGERLEFT, deadzone) > 0.8);
     ret.poop    |= (get_axis(SDL_CONTROLLER_AXIS_TRIGGERRIGHT, deadzone) > 0.8);
 
     return ret;
+}
+
+void print_info()
+{
+    SDL_version version;
+    SDL_VERSION(&version);
+    cout << "SDL version: " << (int)version.major << "." << (int)version.minor << (int)version.patch << endl;
+    SDL_GetVersion(&version);
+    cout << "runtime version: " << (int)version.major << "." << (int)version.minor << (int)version.patch << endl;
+    printf("OpenGL vendor: '%s'\n" , glGetString(GL_VENDOR));
+    printf("OpenGL renderer: '%s'\n" , glGetString(GL_RENDERER));
+    printf("OpenGL version: '%s'\n" , glGetString(GL_VERSION));
+    printf("GLSL version: '%s'\n" , glGetString(GL_SHADING_LANGUAGE_VERSION));
+    printf("GLEW version: %s\n", glewGetString(GLEW_VERSION));
 }
 
 void loop()
@@ -190,7 +204,7 @@ void loop()
         if (input.quit) break;
 
         // Process gameplay
-        game::update(state, input);
+        game::update(state, ticks, args.debug, input);
 
         // Render graphics
         gfx::render(state, ticks, args.debug);
@@ -201,20 +215,6 @@ void loop()
         // Finish frame
         SDL_Delay(20);
     }
-}
-
-void print_info()
-{
-    SDL_version version;
-    SDL_VERSION(&version);
-    cout << "SDL version: " << (int)version.major << "." << (int)version.minor << (int)version.patch << endl;
-    SDL_GetVersion(&version);
-    cout << "runtime version: " << (int)version.major << "." << (int)version.minor << (int)version.patch << endl;
-    printf("OpenGL vendor: '%s'\n" , glGetString(GL_VENDOR));
-    printf("OpenGL renderer: '%s'\n" , glGetString(GL_RENDERER));
-    printf("OpenGL version: '%s'\n" , glGetString(GL_VERSION));
-    printf("GLSL version: '%s'\n" , glGetString(GL_SHADING_LANGUAGE_VERSION));
-    printf("GLEW version: %s\n", glewGetString(GLEW_VERSION));
 }
 
 int scratch()

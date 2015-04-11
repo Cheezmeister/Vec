@@ -1,11 +1,13 @@
 #include <cmath>
-#include "bml.h"
+#include "vec.h"
+
+using namespace std;
 
 namespace game {
 
 struct _GameParams {
-    float movespeed, rotspeed, drag, bulletspeed, enemyspeed, hitbox ;
-} params = {   0.005,      6,  0.9,         0.03, 0.01,       0.005 };
+    float movespeed, rotspeed, drag, bulletspeed, enemyspeed, hitbox, frequency ;
+} params = {   0.005,      6,  0.9,         0.03, 0.01,       0.005,  30.0 / 60.0 / 4.0 };
 
 float mag_squared(const bml::Vec& vec)
 {
@@ -25,27 +27,16 @@ void init(GameState& state)
     }
 }
 
-void update(GameState& state, const Input& input)
+void update(GameState& state, u32 ticks, bool debug, const Input& input)
 {
-    // Movement
-    float thrust = params.movespeed * input.axes.y1;
-    float sidethrust = params.movespeed * input.axes.x1;
-    float r = state.player.rotation;
-
     // Aiming
     state.player.reticle.x = input.axes.x2;
     state.player.reticle.y = input.axes.y2;
 
-    bml::Vec t = {
-        thrust * cos(r) + sidethrust * sin(r),
-        thrust * sin(r) - sidethrust * cos(r)
-    };
-
-    state.player.rotation = atan2(state.player.reticle.y - state.player.pos.y, state.player.reticle.x - state.player.pos.x);
-    state.player.vel += t;
-
-    state.player.pos += state.player.vel;
-    state.player.vel = state.player.vel * params.drag;
+    // Movement
+    float thrust = params.movespeed * input.axes.y1;
+    float sidethrust = params.movespeed * input.axes.x1;
+    float r = state.player.rotation;
 
     // Shooting
     if (input.shoot)
@@ -66,6 +57,22 @@ void update(GameState& state, const Input& input)
         state.turds[i].rotation = state.player.rotation;
         state.turds[i].life = 1;
     }
+
+    bml::Vec t = {
+        thrust * cos(r) + sidethrust * sin(r),
+        thrust * sin(r) - sidethrust * cos(r)
+    };
+
+    state.player.rotation = atan2(state.player.reticle.y - state.player.pos.y, state.player.reticle.x - state.player.pos.x);
+    state.player.vel += t;
+
+    state.player.pos += state.player.vel;
+    state.player.vel = state.player.vel * params.drag;
+
+    float phase = ticks / 1000.0 * params.frequency;
+    phase -= floor(phase);
+    state.player.phase = phase;
+
 
     // Bullets
     for (int i = 0; i < MAX_BULLETS; ++i)

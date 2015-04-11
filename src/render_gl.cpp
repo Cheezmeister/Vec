@@ -1,6 +1,6 @@
 #include <cmath>
 #include "crossgl.h"
-#include "bml.h"
+#include "vec.h"
 
 // http://stackoverflow.com/a/13874526
 #define MAKE_SHADER(version, shader)  "#version " #version "\n" #shader
@@ -324,14 +324,14 @@ void init()
     GLuint fs_scintillate = arcsynthesis::CreateShader(GL_FRAGMENT_SHADER,
                             "#version 120 \n"
                             "varying vec4 glPos; "
-                            "uniform float ticks; "
+                            "uniform float phase; "
+                            "uniform float value = 1.0; "
                             "const float mPI = 3.14159;"
                             INCLUDE_COMMON_GLSL
                             "void main() { "
-                            "  float phase = ticks / 7.0 / 1000.0;"
                             "  float h = nsin(phase * mPI); "
                             "  float s = 1.0; "
-                            "  float v = 1.0; "
+                            "  float v = value; "
                             "  vec3 rgb = hsv2rgb(vec3(h, s, v)); "
                             "  gl_FragColor = vec4(rgb, 0); "
                             "} "
@@ -380,13 +380,18 @@ void init()
     check_error("clearcolor");
 }
 
-void draw_background(u32 ticks)
+void draw_background(GameState& state, u32 ticks)
 {
     GLuint shader = renderstate.shaders.viewport;
     VBO vbo = renderstate.vbo.viewport;
     glUseProgram(shader);
+
+    // TODO figure out why can't set this prior to glUseProgram
+    set_uniform(renderstate.shaders.viewport, "value", 0.3); //darken
+
     set_uniform(shader, "scale", 4);
     set_uniform(shader, "ticks", ticks + 1400);
+    set_uniform(shader, "phase", state.player.phase + 0.5);
     glBindBuffer(GL_ARRAY_BUFFER, vbo.handle);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
@@ -394,10 +399,12 @@ void draw_background(u32 ticks)
 
     set_uniform(shader, "scale", 2);
     set_uniform(shader, "ticks", ticks + 1200);
+    set_uniform(shader, "phase", state.player.phase + 0.6);
     glDrawArrays(GL_QUADS, 0, vbo.size);
 
     set_uniform(shader, "scale", 1);
     set_uniform(shader, "ticks", ticks + 1000);
+    set_uniform(shader, "phase", state.player.phase + 0.7);
     glDrawArrays(GL_QUADS, 0, vbo.size);
 
     glDisableVertexAttribArray(0);
@@ -410,6 +417,10 @@ void draw_player(GameState& state, u32 ticks)
     set_uniform(shader, "offset", state.player.pos);
     set_uniform(shader, "rotation", state.player.rotation);
     set_uniform(shader, "ticks", ticks);
+    set_uniform(shader, "phase", state.player.phase);
+    float checkpoint = fabs(state.player.phase - 0.5) * 40;
+    if (checkpoint < 1.0) 
+      set_uniform(shader, "value", checkpoint);
     set_uniform(shader, "scale", state.player.size);
     draw_array(renderstate.vbo.player);
 }
@@ -484,7 +495,7 @@ void render(GameState& state, u32 ticks, bool debug)
     check_error("clearing to black");
 
     // Render background thingie
-    draw_background(ticks);
+    draw_background(state, ticks);
 
     // Render "player" triangle
     draw_player(state, ticks);
