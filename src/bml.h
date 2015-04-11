@@ -109,7 +109,6 @@ typedef struct _GameState {
     struct _Player {
         bml::Vec pos;
         bml::Vec vel;
-        float life;
         float size;
         float rotation; // radians
         bml::Vec reticle;

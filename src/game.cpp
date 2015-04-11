@@ -14,7 +14,6 @@ float mag_squared(const bml::Vec& vec)
 
 void init(GameState& state)
 {
-    state.player.life = 1;
     state.player.size = 1;
     for (int i = 0; i < MAX_ENEMIES; ++i)
     {
@@ -139,7 +138,7 @@ void update(GameState& state, const Input& input)
     }
 
     // Game Over
-    if (state.player.life <= 0)
+    if (state.player.size <= 0)
         state.over = true;
 
 }
