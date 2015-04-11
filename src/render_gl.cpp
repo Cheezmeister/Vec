@@ -261,12 +261,19 @@ GLuint make_shader(GLuint vertex, GLuint fragment)
 void init()
 {
 #define INCLUDE_COMMON_GLSL \
-  "float ncos(float a) {" \
-  "  return 0.5 + cos(a)/2;" \
-  "}" \
-  "float nsin(float a) {" \
-  "  return 0.5 + sin(a)/2;" \
-  "}" \
+    "float ncos(float a) {" \
+    "  return 0.5 + cos(a)/2;" \
+    "}" \
+    "float nsin(float a) {" \
+    "  return 0.5 + sin(a)/2;" \
+    "}" \
+    "/* Via http://stackoverflow.com/a/17897228 */ " \
+    "vec3 hsv2rgb(vec3 c)" \
+    "{" \
+    "    vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);" \
+    "    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);" \
+    "    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);" \
+    "}" \
  
     // Compile shaders
     GLuint vs_pulse = arcsynthesis::CreateShader(GL_VERTEX_SHADER,
@@ -321,13 +328,12 @@ void init()
                             "const float mPI = 3.14159;"
                             INCLUDE_COMMON_GLSL
                             "void main() { "
-                            "  float rphase = ticks / 2 / 1000.0;"
-                            "  float gphase = ticks / 5 / 1000.0;"
-                            "  float bphase = ticks / 7.0 / 1000.0;"
-                            "  float r = 0.3 + 0.7 * nsin(rphase * mPI); "
-                            "  float g = 0.5 + 0.5 * nsin(gphase * mPI); "
-                            "  float b = 0.3 + 0.7 * nsin(bphase * mPI); "
-                            "  gl_FragColor = vec4(r, g, b, 0); "
+                            "  float phase = ticks / 7.0 / 1000.0;"
+                            "  float h = nsin(phase * mPI); "
+                            "  float s = 1.0; "
+                            "  float v = 1.0; "
+                            "  vec3 rgb = hsv2rgb(vec3(h, s, v)); "
+                            "  gl_FragColor = vec4(rgb, 0); "
                             "} "
                                                       );
 
@@ -340,10 +346,11 @@ void init()
                       INCLUDE_COMMON_GLSL
                       "void main() { "
                       "  float phase = ticks * 1 / 1000.0;"
-                      "  float r = 0.0;"
-                      "  float g = 0.0 + 0.9 * nsin(phase * mPI); "
-                      "  float b = 0.0 + 0.9 * ncos(phase * mPI);"
-                      "  gl_FragColor = vec4(r, g, b, a); "
+                      "  float h = 0.5; "
+                      "  float s = 1.0; "
+                      "  float v = 0.5 + 0.5 * nsin(phase * mPI); "
+                      "  vec3 rgb = hsv2rgb(vec3(h, s, v)); "
+                      "  gl_FragColor = vec4(rgb, a); "
                       "} "
                                                 );
     // Set up VBO
