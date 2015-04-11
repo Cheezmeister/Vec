@@ -86,7 +86,7 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
     for (int i = 0; i < MAX_TURDS; ++i)
     {
         Turd& t = state.turds[i];
-        t.life -= 0.01;
+        t.life -= 0.001;
     }
 
     // Enemies
@@ -121,6 +121,19 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
             Bullet& b = state.bullets[i];
 
             // Skip dead bullets
+            if (b.life <= 0) continue;
+
+            if (mag_squared(b.pos - e.pos) < params.hitbox) // TODO track size/hitbox
+            {
+                e.life -= 0.1;
+                b.life = 0;
+            }
+        }
+        for (int i = 0; i < MAX_TURDS; ++i)
+        {
+            Turd& b = state.turds[i];
+
+            // Skip dead turds
             if (b.life <= 0) continue;
 
             if (mag_squared(b.pos - e.pos) < params.hitbox) // TODO track size/hitbox
