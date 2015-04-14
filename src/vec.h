@@ -20,11 +20,21 @@ typedef struct _Input {
 
 } Input;
 
+typedef enum EType {
+    E_FIRST = 0,
+    E_BULLET = 0,
+    E_ROCKET,
+    E_TURD,
+    E_NOVA,
+    E_LAST,
+} EType;
+
 const int MAX_BULLETS = 500;
 typedef struct _Bullet {
     float life;
     bml::Vec pos;
     bml::Vec vel;
+    EType type;
 } Bullet;
 
 const int MAX_TURDS = 50;
@@ -32,6 +42,7 @@ typedef struct _Turd {
     float rotation;
     float life;
     bml::Vec pos;
+    EType type;
 } Turd;
 
 const int MAX_ENEMIES = 12;

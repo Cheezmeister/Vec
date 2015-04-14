@@ -44,15 +44,36 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
         int i = state.next_bullet;
         ++state.next_bullet %= MAX_BULLETS;
         state.bullets[i].life = 1000;
+        state.bullets[i].type = E_BULLET;
         state.bullets[i].vel = state.player.reticle - state.player.pos;
         state.bullets[i].pos = state.player.pos;
     }
+    if (input.auxshoot)
+    {
+        int i = state.next_bullet;
+        ++state.next_bullet %= MAX_BULLETS;
+        state.bullets[i].life = 1000;
+        state.bullets[i].type = E_ROCKET;
+        state.bullets[i].vel = state.player.reticle - state.player.pos;
+        state.bullets[i].pos = state.player.pos;
+    }
+
 
     // Pooping
     if (input.poop)
     {
         int i = state.next_turd;
         ++state.next_turd %= MAX_TURDS;
+        state.bullets[i].type = E_TURD;
+        state.turds[i].pos = state.player.pos;
+        state.turds[i].rotation = state.player.rotation;
+        state.turds[i].life = 1;
+    }
+    if (input.auxpoop)
+    {
+        int i = state.next_turd;
+        ++state.next_turd %= MAX_TURDS;
+        state.bullets[i].type = E_NOVA;
         state.turds[i].pos = state.player.pos;
         state.turds[i].rotation = state.player.rotation;
         state.turds[i].life = 1;

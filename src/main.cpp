@@ -147,8 +147,10 @@ Input handle_input()
     ret.axes.x2 += state.axes.x2;
     ret.axes.y1 += state.axes.y1;
     ret.axes.y2 += state.axes.y2;
-    ret.shoot |= state.button.left2 || state.button.left1;
-    ret.poop |= state.button.right2 || state.button.right1;
+    ret.shoot |= state.button.left1;
+    ret.poop |= state.button.right1;
+    ret.auxshoot |= state.button.left2;
+    ret.auxpoop |= state.button.right2;
 
     // Poll keyboard
     const Uint8* keystate = SDL_GetKeyboardState(NULL);
@@ -158,15 +160,16 @@ Input handle_input()
     ret.axes.x1 -= 1.0 * (keystate[SDL_SCANCODE_A]);
     ret.poop |= (0 != keystate[SDL_SCANCODE_R]);
 
-    // Poll sticks
+    // Poll gamepad
     float deadzone = 0.05;
     ret.axes.x1 += get_axis(SDL_CONTROLLER_AXIS_LEFTX, deadzone);
     ret.axes.x2 += get_axis(SDL_CONTROLLER_AXIS_RIGHTX, deadzone);
     ret.axes.y1 -= get_axis(SDL_CONTROLLER_AXIS_LEFTY, deadzone);
     ret.axes.y2 -= get_axis(SDL_CONTROLLER_AXIS_RIGHTY, deadzone);
-    ret.shoot   |= (get_axis(SDL_CONTROLLER_AXIS_TRIGGERLEFT, deadzone) > 0.8);
-    ret.poop    |= (get_axis(SDL_CONTROLLER_AXIS_TRIGGERRIGHT, deadzone) > 0.8);
-
+    ret.shoot      |= (get_axis(SDL_CONTROLLER_AXIS_TRIGGERLEFT, deadzone) > 0.8);
+    ret.auxshoot   |= (get_axis(SDL_CONTROLLER_AXIS_TRIGGERRIGHT, deadzone) > 0.8);
+    ret.poop       |= SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_LEFTSHOULDER);
+    ret.auxpoop    |= SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);
     return ret;
 }
 

@@ -98,10 +98,12 @@ typedef struct _RenderState {
         GLuint reticle;
         GLuint turd;
         GLuint viewport;
+        GLuint nova;
     } shaders;
     struct _VBOs {
         VBO enemy;
         VBO player;
+        VBO nova;
         VBO reticle;
         VBO viewport;
     } vbo;
@@ -353,8 +355,30 @@ void init()
                       "  gl_FragColor = vec4(rgb, a); "
                       "} "
                                                 );
+
+    GLuint fs_circle = arcsynthesis::CreateShader(GL_FRAGMENT_SHADER,
+                       "#version 120 \n"
+                       "varying vec4 glPos; "
+                       "uniform float phase; "
+                       "uniform float value = 1.0; "
+                       "uniform vec2 center; "
+                       "uniform float radius; "
+                       "uniform float thickness = 0.1; "
+                       "const float mPI = 3.14159;"
+                       INCLUDE_COMMON_GLSL
+                       "void main() { "
+                       "  float h = nsin(phase * mPI); "
+                       "  float v = value; "
+                       "  float len = length(vec2(glPos) - center); "
+                       "  float s = thickness - min(thickness, abs(len - radius)); "
+                       "  vec3 rgb = hsv2rgb(vec3(h, s, v)); "
+                       "  gl_FragColor = vec4(rgb, 0); "
+                       "} "
+                                                 );
+
     // Set up VBO
     renderstate.vbo.player = make_polygon_vbo(3, 0, 0.5);
+    renderstate.vbo.nova = make_polygon_vbo(3, 0.48, 0.5);
     renderstate.vbo.reticle = make_polygon_vbo(5, 0.3, 0.4);
     renderstate.vbo.enemy = make_polygon_vbo(6, 0.1, 0.3);
 
@@ -374,6 +398,7 @@ void init()
     renderstate.shaders.enemy = make_shader(vs_wiggle, fs_pulse);
     renderstate.shaders.viewport = make_shader(vs_pulse, fs_scintillate);
     renderstate.shaders.turd = make_shader(vs_wiggle, fs_scintillate);
+    renderstate.shaders.nova = make_shader(vs_wiggle, fs_circle);
 
     // Misc setup
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -419,8 +444,8 @@ void draw_player(GameState& state, u32 ticks)
     set_uniform(shader, "ticks", ticks);
     set_uniform(shader, "phase", state.player.phase);
     float checkpoint = fabs(state.player.phase - 0.5) * 40;
-    if (checkpoint < 1.0) 
-      set_uniform(shader, "value", checkpoint);
+    if (checkpoint < 1.0)
+        set_uniform(shader, "value", checkpoint);
     set_uniform(shader, "scale", state.player.size);
     draw_array(renderstate.vbo.player);
 }
@@ -445,9 +470,12 @@ void draw_bullets(GameState& state, u32 ticks)
         GLuint shader = renderstate.shaders.player;
         glUseProgram(shader);
         set_uniform(shader, "offset", state.bullets[i].pos);
-        set_uniform(shader, "rotation", ticks / 100.0f);
-        set_uniform(shader, "scale", 0.2);
         set_uniform(shader, "ticks", ticks);
+        if (state.bullets[i].type == E_BULLET)
+        {
+            set_uniform(shader, "rotation", ticks / 100.0f);
+            set_uniform(shader, "scale", 0.2);
+        }
         draw_array(renderstate.vbo.player);
     }
 }
@@ -458,13 +486,28 @@ void draw_turds(GameState& state, u32 ticks)
     {
         if (state.turds[i].life <= 0) continue;
 
-        GLuint shader = renderstate.shaders.turd;
-        glUseProgram(shader);
-        set_uniform(shader, "offset", state.turds[i].pos);
-        set_uniform(shader, "scale", 0.2 + 0.5 * (1.0 - state.turds[i].life));
-        set_uniform(shader, "rotation", state.turds[i].rotation);
-        set_uniform(shader, "ticks", ticks);
-        draw_array(renderstate.vbo.player);
+        if (state.turds[i].type == E_TURD)
+        {
+            GLuint shader = renderstate.shaders.turd;
+            glUseProgram(shader);
+            set_uniform(shader, "offset", state.turds[i].pos);
+            set_uniform(shader, "scale", 0.2 + 0.5 * (1.0 - state.turds[i].life));
+            set_uniform(shader, "rotation", state.turds[i].rotation);
+            set_uniform(shader, "ticks", ticks);
+            draw_array(renderstate.vbo.player);
+        }
+        else
+        {
+            GLuint shader = renderstate.shaders.nova;
+            glUseProgram(shader);
+            set_uniform(shader, "scale", (100 - 100*state.turds[i].life));
+            set_uniform(shader, "offset", state.turds[i].pos);
+            set_uniform(shader, "rotation", state.turds[i].rotation);
+            set_uniform(shader, "center", state.turds[i].pos);
+            set_uniform(shader, "ticks", 0); // HACK
+            set_uniform(shader, "radius", (100 - 100*state.turds[i].life));
+            draw_array(renderstate.vbo.nova);
+        }
     }
 }
 
