@@ -48,7 +48,7 @@ file(GLOB_RECURSE HEADERS ${CMAKE_SOURCE_DIR}/src/*.h)
 list(APPEND SOURCES 
   src/main.cpp 
   src/game.cpp 
-  src/render_gl.cpp
+  src/gfx.cpp
   vendor/manymouse/windows_wminput.c
   vendor/manymouse/manymouse.c
   vendor/manymouse/macosx_hidmanager.c
