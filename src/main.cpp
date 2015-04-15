@@ -124,13 +124,19 @@ Input handle_input()
         else if (mme.type == MANYMOUSE_EVENT_BUTTON)
         {
             bool pressed = (mme.value == 1);
-            if (mme.device == rightmouse)
+            if (mme.device == leftmouse)
             {
-                if (mme.item == 0)
-                    state.button.left2 = pressed;
-                else if (mme.item == 1)
+				if (mme.item == 0)
+				{
+					state.button.left2 = pressed;
+					ret.auxshoot |= true;
+				}
+				else if (mme.item == 1)
+				{ 
                     state.button.right2 = pressed;
-            }
+					ret.auxpoop |= true;
+				}
+			}
             else
             {
                 if (mme.item == 0)
@@ -149,8 +155,6 @@ Input handle_input()
     ret.axes.y2 += state.axes.y2;
     ret.shoot |= state.button.left1;
     ret.poop |= state.button.right1;
-    ret.auxshoot |= state.button.left2;
-    ret.auxpoop |= state.button.right2;
 
     // Poll keyboard
     const Uint8* keystate = SDL_GetKeyboardState(NULL);

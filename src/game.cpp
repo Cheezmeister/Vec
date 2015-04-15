@@ -64,7 +64,7 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
     {
         int i = state.next_turd;
         ++state.next_turd %= MAX_TURDS;
-        state.bullets[i].type = E_TURD;
+		state.turds[i].type = E_TURD;
         state.turds[i].pos = state.player.pos;
         state.turds[i].rotation = state.player.rotation;
         state.turds[i].life = 1;
@@ -73,7 +73,7 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
     {
         int i = state.next_turd;
         ++state.next_turd %= MAX_TURDS;
-        state.bullets[i].type = E_NOVA;
+		state.turds[i].type = E_NOVA;
         state.turds[i].pos = state.player.pos;
         state.turds[i].rotation = state.player.rotation;
         state.turds[i].life = 1;

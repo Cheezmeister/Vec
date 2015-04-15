@@ -476,6 +476,11 @@ void draw_bullets(GameState& state, u32 ticks)
             set_uniform(shader, "rotation", ticks / 100.0f);
             set_uniform(shader, "scale", 0.2);
         }
+		else
+		{
+			set_uniform(shader, "rotation", state.player.rotation);
+			set_uniform(shader, "scale", 1);
+		}
         draw_array(renderstate.vbo.player);
     }
 }
