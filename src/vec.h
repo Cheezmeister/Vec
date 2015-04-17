@@ -20,48 +20,34 @@ typedef struct _Input {
 
 } Input;
 
-typedef enum EType {
-    E_FIRST = 0,
-    E_BULLET = 0,
+enum {
+    E_FIRST = 1,
+    E_BULLET = 1,
     E_ROCKET,
     E_TURD,
     E_NOVA,
+    E_ENEMY,
     E_LAST,
-} EType;
+};
+typedef int EType;
 
 const int MAX_BULLETS = 500;
-typedef struct _Bullet {
-    float life;
-    bml::Vec pos;
-    bml::Vec vel;
-    EType type;
-} Bullet;
-
-const int MAX_TURDS = 50;
-typedef struct _Turd {
-    float rotation;
-    float life;
-    bml::Vec pos;
-    EType type;
-} Turd;
-
 const int MAX_ENEMIES = 12;
-typedef struct _Enemy {
+const int MAX_TURDS = 50;
+const int MAX_ENTITIES = MAX_TURDS + MAX_ENEMIES + MAX_BULLETS;
+
+typedef struct Entity {
+    EType type;
     float life;
     bml::Vec pos;
     bml::Vec vel;
-} Enemy;
+    float rotation;
+} Entity;
 
 typedef struct _GameState {
 
-    Bullet bullets[MAX_BULLETS];
-    int next_bullet;
-
-    Turd turds[MAX_TURDS];
-    int next_turd;
-
-    Enemy enemies[MAX_ENEMIES];
-    int next_enemy;
+    Entity entities[MAX_ENTITIES];
+    int next;
 
     struct _Player {
         bml::Vec pos;

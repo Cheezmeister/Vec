@@ -461,74 +461,65 @@ void draw_reticle(GameState& state, u32 ticks)
     draw_array(renderstate.vbo.reticle);
 }
 
-void draw_bullets(GameState& state, u32 ticks)
+void draw_entities(GameState& state, u32 ticks)
 {
-    for (int i = 0; i < MAX_BULLETS; ++i)
+    for (int i = 0; i < MAX_ENTITIES; ++i)
     {
-        if (state.bullets[i].life <= 0) continue;
+        Entity& e = state.entities[i];
+        if (e.life <= 0) continue;
 
-        GLuint shader = renderstate.shaders.player;
-        glUseProgram(shader);
-        set_uniform(shader, "offset", state.bullets[i].pos);
-        set_uniform(shader, "ticks", ticks);
-        if (state.bullets[i].type == E_BULLET)
+        if (e.type == E_ROCKET)
         {
+            GLuint shader = renderstate.shaders.player;
+            glUseProgram(shader);
+            set_uniform(shader, "offset", e.pos);
+            set_uniform(shader, "rotation", state.player.rotation);
+            set_uniform(shader, "ticks", ticks);
+            set_uniform(shader, "scale", 1);
+            draw_array(renderstate.vbo.player);
+        }
+        if (e.type == E_BULLET)
+        {
+            GLuint shader = renderstate.shaders.player;
+            glUseProgram(shader);
+            set_uniform(shader, "offset", e.pos);
+            set_uniform(shader, "ticks", ticks);
             set_uniform(shader, "rotation", ticks / 100.0f);
             set_uniform(shader, "scale", 0.2);
+            draw_array(renderstate.vbo.player);
         }
-		else
-		{
-			set_uniform(shader, "rotation", state.player.rotation);
-			set_uniform(shader, "scale", 1);
-		}
-        draw_array(renderstate.vbo.player);
-    }
-}
-
-void draw_turds(GameState& state, u32 ticks)
-{
-    for (int i = 0; i < MAX_TURDS; ++i)
-    {
-        if (state.turds[i].life <= 0) continue;
-
-        if (state.turds[i].type == E_TURD)
+        if (e.type == E_TURD)
         {
             GLuint shader = renderstate.shaders.turd;
             glUseProgram(shader);
-            set_uniform(shader, "offset", state.turds[i].pos);
-            set_uniform(shader, "scale", 0.2 + 0.5 * (1.0 - state.turds[i].life));
-            set_uniform(shader, "rotation", state.turds[i].rotation);
+            set_uniform(shader, "offset", e.pos);
+            set_uniform(shader, "scale", 0.2 + 0.5 * (1.0 - e.life));
+            set_uniform(shader, "rotation", e.rotation);
             set_uniform(shader, "ticks", ticks);
             draw_array(renderstate.vbo.player);
         }
-        else
+        if (e.type == E_NOVA)
         {
             GLuint shader = renderstate.shaders.nova;
             glUseProgram(shader);
-            set_uniform(shader, "scale", (100 - 100*state.turds[i].life));
-            set_uniform(shader, "offset", state.turds[i].pos);
-            set_uniform(shader, "rotation", state.turds[i].rotation);
-            set_uniform(shader, "center", state.turds[i].pos);
+            set_uniform(shader, "scale", (100 - 100*e.life));
+            set_uniform(shader, "offset", e.pos);
+            set_uniform(shader, "rotation", e.rotation);
+            set_uniform(shader, "center", e.pos);
             set_uniform(shader, "ticks", 0); // HACK
-            set_uniform(shader, "radius", (100 - 100*state.turds[i].life));
+            set_uniform(shader, "radius", (100 - 100*e.life));
             draw_array(renderstate.vbo.nova);
         }
-    }
-}
-
-void draw_enemies(GameState& state, u32 ticks)
-{
-    for (int i = 0; i < MAX_ENEMIES; ++i)
-    {
-        if (state.enemies[i].life <= 0) continue;
-
-        GLuint shader = renderstate.shaders.enemy;
-        glUseProgram(shader);
-        set_uniform(shader, "offset", state.enemies[i].pos);
-        set_uniform(shader, "rotation", ticks / 400.0f);
-        set_uniform(shader, "scale", 0.6);
-        set_uniform(shader, "ticks", ticks);
-        draw_array(renderstate.vbo.enemy);
+        if (e.type == E_ENEMY)
+        {
+            GLuint shader = renderstate.shaders.enemy;
+            glUseProgram(shader);
+            set_uniform(shader, "offset", e.pos);
+            set_uniform(shader, "rotation", ticks / 400.0f);
+            set_uniform(shader, "scale", 0.6);
+            set_uniform(shader, "ticks", ticks);
+            draw_array(renderstate.vbo.enemy);
+        }
     }
 }
 
@@ -552,9 +543,7 @@ void render(GameState& state, u32 ticks, bool debug)
     draw_reticle(state, ticks);
 
     // Render bullets, enemies and turds
-    draw_bullets(state, ticks);
-    draw_turds(state, ticks);
-    draw_enemies(state, ticks);
+    draw_entities(state, ticks);
 }
 
 } // namespace gfx

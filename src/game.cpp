@@ -9,6 +9,9 @@ struct _GameParams {
     float movespeed, rotspeed, drag, bulletspeed, enemyspeed, hitbox, frequency ;
 } params = {   0.005,      6,  0.9,         0.03, 0.01,       0.005,  30.0 / 60.0 / 4.0 };
 
+void collide(GameState& state);
+void add_entity(GameState& state, Entity& e);
+
 float mag_squared(const bml::Vec& vec)
 {
     return vec.x * vec.x + vec.y * vec.y;
@@ -19,11 +22,14 @@ void init(GameState& state)
     state.player.size = 1;
     for (int i = 0; i < MAX_ENEMIES; ++i)
     {
-        state.enemies[i].pos.x = (rand() % MAX_ENEMIES) / (float)MAX_ENEMIES;
-        state.enemies[i].pos.y = (rand() % MAX_ENEMIES) / (float)MAX_ENEMIES;
-        state.enemies[i].vel.x = (rand() % MAX_ENEMIES) / (float)MAX_ENEMIES;
-        state.enemies[i].vel.y = (rand() % MAX_ENEMIES) / (float)MAX_ENEMIES;
-        state.enemies[i].life = 1;
+        Entity e = {0};
+        e.type = E_ENEMY;
+        e.pos.x = (rand() % MAX_ENEMIES) / (float)MAX_ENEMIES;
+        e.pos.y = (rand() % MAX_ENEMIES) / (float)MAX_ENEMIES;
+        e.vel.x = (rand() % MAX_ENEMIES) / (float)MAX_ENEMIES;
+        e.vel.y = (rand() % MAX_ENEMIES) / (float)MAX_ENEMIES;
+        e.life = 1;
+        add_entity(state, e);
     }
 }
 
@@ -36,152 +42,179 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
     // Movement
     float thrust = params.movespeed * input.axes.y1;
     float sidethrust = params.movespeed * input.axes.x1;
-    float r = state.player.rotation;
 
     // Shooting
     if (input.shoot)
     {
-        int i = state.next_bullet;
-        ++state.next_bullet %= MAX_BULLETS;
-        state.bullets[i].life = 1000;
-        state.bullets[i].type = E_BULLET;
-        state.bullets[i].vel = state.player.reticle - state.player.pos;
-        state.bullets[i].pos = state.player.pos;
-    }
-    if (input.auxshoot)
-    {
-        int i = state.next_bullet;
-        ++state.next_bullet %= MAX_BULLETS;
-        state.bullets[i].life = 1000;
-        state.bullets[i].type = E_ROCKET;
-        state.bullets[i].vel = state.player.reticle - state.player.pos;
-        state.bullets[i].pos = state.player.pos;
+        Entity b = {0};
+        b.life = 1000;
+        b.type = E_BULLET;
+        b.vel = state.player.reticle - state.player.pos;
+        b.pos = state.player.pos;
+        add_entity(state, b);
     }
 
+    if (input.auxshoot)
+    {
+        Entity b = {0};
+        b.life = 1000; // TODO normalize bullet life
+        b.type = E_ROCKET;
+        b.vel = state.player.reticle - state.player.pos;
+        b.pos = state.player.pos;
+        add_entity(state, b);
+    }
 
     // Pooping
     if (input.poop)
     {
-        int i = state.next_turd;
-        ++state.next_turd %= MAX_TURDS;
-		state.turds[i].type = E_TURD;
-        state.turds[i].pos = state.player.pos;
-        state.turds[i].rotation = state.player.rotation;
-        state.turds[i].life = 1;
-    }
-    if (input.auxpoop)
-    {
-        int i = state.next_turd;
-        ++state.next_turd %= MAX_TURDS;
-		state.turds[i].type = E_NOVA;
-        state.turds[i].pos = state.player.pos;
-        state.turds[i].rotation = state.player.rotation;
-        state.turds[i].life = 1;
+        Entity t = {0};
+        t.type = E_TURD;
+        t.pos = state.player.pos;
+        t.rotation = state.player.rotation;
+        t.life = 1;
+        add_entity(state, t);
     }
 
+    if (input.auxpoop)
+    {
+        Entity t = {0};
+        t.type = E_NOVA;
+        t.pos = state.player.pos;
+        t.rotation = state.player.rotation;
+        t.life = 1;
+        add_entity(state, t);
+    }
+
+    // Update player (TODO: implement real polar movement)
+    float r = state.player.rotation;
     bml::Vec t = {
         thrust * cos(r) + sidethrust * sin(r),
         thrust * sin(r) - sidethrust * cos(r)
     };
-
     state.player.rotation = atan2(state.player.reticle.y - state.player.pos.y, state.player.reticle.x - state.player.pos.x);
     state.player.vel += t;
-
     state.player.pos += state.player.vel;
     state.player.vel = state.player.vel * params.drag;
-
     float phase = ticks / 1000.0 * params.frequency;
     phase -= floor(phase);
     state.player.phase = phase;
 
-
-    // Bullets
-    for (int i = 0; i < MAX_BULLETS; ++i)
+    // Process entities
+    for (int i = 0; i < MAX_ENTITIES; ++i)
     {
-        Bullet& b = state.bullets[i];
-        b.life--;
-        b.pos += b.vel * params.bulletspeed;
-    }
+        Entity& e = state.entities[i];
+        switch (e.type)
+        {
+        // Bullets/Rockets
+        case E_BULLET:
+        case E_ROCKET:
+            e.life--;
+            e.pos += e.vel * params.bulletspeed;
+            continue;
 
-    // Turds
-    for (int i = 0; i < MAX_TURDS; ++i)
-    {
-        Turd& t = state.turds[i];
-        t.life -= 0.001;
-    }
+        // Turds & Novae
+        case E_TURD:
+        case E_NOVA:
+            e.life -= 0.001;
+            continue;
 
-    // Enemies
-    for (int i = 0; i < MAX_ENEMIES; ++i)
-    {
-        Enemy& e = state.enemies[i];
-        e.pos += e.vel * params.enemyspeed;
-        if (e.pos.x < -1.0) e.pos.x += 2.0;
-        if (e.pos.y < -1.0) e.pos.y += 2.0;
-        if (e.pos.x > 1.0) e.pos.x -= 2.0;
-        if (e.pos.y > 1.0) e.pos.y -= 2.0;
+        // Enemies
+        case E_ENEMY:
+            e.pos += e.vel * params.enemyspeed;
+            if (e.pos.x < -1.0) e.pos.x += 2.0;
+            if (e.pos.y < -1.0) e.pos.y += 2.0;
+            if (e.pos.x > 1.0) e.pos.x -= 2.0;
+            if (e.pos.y > 1.0) e.pos.y -= 2.0;
+            continue;
+
+        default:
+            ;
+        }
     }
 
     // Collisions
-    for (int j = 0; j < MAX_ENEMIES; ++j)
-    {
-        Enemy& e = state.enemies[j];
-
-        // skip dead ents
-        if (e.life <= 0) continue;
-
-        if (mag_squared(state.player.pos - e.pos) < params.hitbox)
-        {
-            if (state.player.size <= 1)
-                state.player.size -= 0.1;
-            else
-                state.player.size *= 0.5;
-        }
-
-        for (int i = 0; i < MAX_BULLETS; ++i)
-        {
-            Bullet& b = state.bullets[i];
-
-            // Skip dead bullets
-            if (b.life <= 0) continue;
-
-            if (mag_squared(b.pos - e.pos) < params.hitbox) // TODO track size/hitbox
-            {
-                e.life -= 0.1;
-                b.life = 0;
-            }
-        }
-        for (int i = 0; i < MAX_TURDS; ++i)
-        {
-            Turd& b = state.turds[i];
-
-            // Skip dead turds
-            if (b.life <= 0) continue;
-
-            if (mag_squared(b.pos - e.pos) < params.hitbox) // TODO track size/hitbox
-            {
-                e.life -= 0.1;
-                b.life = 0;
-            }
-        }
-    }
-    for (int i = 0; i < MAX_BULLETS; ++i)
-    {
-        Bullet& b = state.bullets[i];
-
-        // Skip dead bullets
-        if (b.life <= 0) continue;
-
-        if (mag_squared(b.pos - state.player.pos) < params.hitbox && b.life < 800)
-        {
-            state.player.size *= 1.1;
-            b.life = 0;
-        }
-    }
+    collide(state);
 
     // Game Over
     if (state.player.size <= 0)
         state.over = true;
 
+}
+
+bool check_collision(Entity& a, Entity& b)
+{
+    // skip dead ents
+    if (a.life <= 0 || b.life <= 0) return false;
+
+    // TODO variable hitbxes
+    if (mag_squared(a.pos - b.pos) < params.hitbox)
+    {
+// XXX Lord this is hackish. Hao fix?
+#define WHEN_COLLIDE(type1, type2) if ((a.type == type1 && b.type == type2 )|| (a.type == type2 && b.type == type1))
+#define THEN_THE(type1) (a.type == type1 ? a : b)
+        WHEN_COLLIDE(E_TURD, E_ENEMY)
+        {
+            THEN_THE(E_TURD).life = 0;
+            THEN_THE(E_ENEMY).life -= 0.1;
+            return true;
+        }
+        WHEN_COLLIDE(E_BULLET, E_ENEMY)
+        {
+            THEN_THE(E_BULLET).life = 0;
+            THEN_THE(E_ENEMY).life -= 0.1;
+            return true;
+        }
+#undef WHEN_COLLIDE
+#undef THEN_THE
+    }
+    return false;
+}
+
+void add_entity(GameState& state, Entity& e)
+{
+    // find next fungible (not-enemy) ent
+    do ++state.next %= MAX_ENTITIES;
+    while (state.entities[state.next].type == E_ENEMY);
+    state.entities[state.next] = e;
+}
+
+void collide(GameState& state)
+{
+    // Check ent-ent collisions
+    for (int i =   0; i < MAX_ENTITIES; ++i)
+        for (int j = i+1; j < MAX_ENTITIES; ++j)
+        {
+            check_collision(state.entities[i], state.entities[j]);
+        }
+
+    // Handle player collisions
+    for (int i = 0; i < MAX_ENTITIES; ++i)
+    {
+        Entity& e = state.entities[i];
+
+        // skip dead ents
+        if (e.life <= 0) continue;
+
+
+        if (mag_squared(e.pos - state.player.pos) < params.hitbox)
+        {
+            // Collect bullets to grow (TODO this is a stupid mechanic)
+            if (e.type == E_BULLET && e.life < 800)
+            {
+                state.player.size *= 1.1;
+                e.life = 0;
+            }
+
+            // Enemies cause shrinkage
+            else if (e.type == E_ENEMY)
+            {
+                if (state.player.size <= 1)
+                    state.player.size -= 0.1;
+                else
+                    state.player.size *= 0.5;
+            }
+        }
+    }
 }
 
 }
