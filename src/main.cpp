@@ -96,7 +96,11 @@ Input handle_input()
         {
             if (event.cbutton.button & SDL_CONTROLLER_BUTTON_LEFTSHOULDER)
             {
-                ret.shoot = true;
+                ret.auxshoot = true;
+            }
+            if (event.cbutton.button & SDL_CONTROLLER_BUTTON_RIGHTSHOULDER)
+            {
+                ret.auxpoop = true;
             }
         }
     }
@@ -107,17 +111,22 @@ Input handle_input()
     {
         // NOTE interestingly, it seems that having a fake mouse connected via Synergy
         //      will consume device slot 0, but won't produce events for ManyMouse.
-        //      That's just a guess. And what happens if you have a gazillion mice!?
-        const int leftmouse = 1;
-        const int rightmouse = 2;
+        //      That's just a guess.
+        //
+        //      A simple hack around, assign devices in the order they were used.
+        static int leftmouse = -1;
+        static int rightmouse = -1;
+        if (leftmouse < 0)
+            leftmouse = mme.device;
+        else if (rightmouse < 0 && mme.device != leftmouse)
+            rightmouse = mme.device;
 
         if (mme.type == MANYMOUSE_EVENT_RELMOTION)
         {
-            // TODO Determine 'left' vs. 'right' from device no.
             // NOTE 'item' indicates which axis, 'device' indicates which mouse
             float& axis = mme.item == 0 ?
-                          (mme.device == leftmouse ? state.axes.x1 : state.axes.x2) :
-                          (mme.device == leftmouse ? state.axes.y1 : state.axes.y2);
+                          (mme.device == leftmouse ? ret.axes.x3 : state.axes.x2) :
+                          (mme.device == leftmouse ? ret.axes.y3 : state.axes.y2);
             float value = mme.value / (mme.item == 0 ? viewport.x : -viewport.y);
             axis += value;
         }
@@ -126,17 +135,11 @@ Input handle_input()
             bool pressed = (mme.value == 1);
             if (mme.device == leftmouse)
             {
-				if (mme.item == 0)
-				{
-					state.button.left2 = pressed;
-					ret.auxshoot |= true;
-				}
-				else if (mme.item == 1)
-				{ 
-                    state.button.right2 = pressed;
-					ret.auxpoop |= true;
-				}
-			}
+                if (mme.item == 0)
+                    ret.auxshoot = pressed;
+                else if (mme.item == 1)
+                    ret.auxpoop = pressed;
+            }
             else
             {
                 if (mme.item == 0)
@@ -149,9 +152,7 @@ Input handle_input()
     }
 
     // Process MM state
-    ret.axes.x1 += state.axes.x1;
     ret.axes.x2 += state.axes.x2;
-    ret.axes.y1 += state.axes.y1;
     ret.axes.y2 += state.axes.y2;
     ret.shoot |= state.button.left1;
     ret.poop |= state.button.right1;
@@ -171,9 +172,7 @@ Input handle_input()
     ret.axes.y1 -= get_axis(SDL_CONTROLLER_AXIS_LEFTY, deadzone);
     ret.axes.y2 -= get_axis(SDL_CONTROLLER_AXIS_RIGHTY, deadzone);
     ret.shoot      |= (get_axis(SDL_CONTROLLER_AXIS_TRIGGERLEFT, deadzone) > 0.8);
-    ret.auxshoot   |= (get_axis(SDL_CONTROLLER_AXIS_TRIGGERRIGHT, deadzone) > 0.8);
-    ret.poop       |= SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_LEFTSHOULDER);
-    ret.auxpoop    |= SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);
+    ret.poop       |= (get_axis(SDL_CONTROLLER_AXIS_TRIGGERRIGHT, deadzone) > 0.8);
     return ret;
 }
 

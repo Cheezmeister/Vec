@@ -5,9 +5,10 @@ using namespace std;
 
 namespace game {
 
+// TODO cleanup
 struct _GameParams {
-    float movespeed, rotspeed, drag, bulletspeed, enemyspeed, hitbox, frequency ;
-} params = {   0.005,      6,  0.9,         0.03, 0.01,       0.005,  30.0 / 60.0 / 4.0 };
+    float movespeed, mousemovespeed, rotspeed, drag, bulletspeed, enemyspeed, hitbox, frequency ;
+} params = {   0.005,      20.0,             6,  0.9,         0.03, 0.01,       0.005,  30.0 / 60.0 / 4.0 };
 
 void collide(GameState& state);
 void add_entity(GameState& state, Entity& e);
@@ -42,6 +43,13 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
     // Movement
     float thrust = params.movespeed * input.axes.y1;
     float sidethrust = params.movespeed * input.axes.x1;
+    if (thrust == 0 && sidethrust == 0) // If dual-mouse, move differently
+    {
+        // TODO pid control
+        thrust = params.movespeed * params.mousemovespeed * input.axes.y3;
+        sidethrust = params.movespeed * params.mousemovespeed * input.axes.x3;
+
+    }
 
     // Shooting
     if (input.shoot)

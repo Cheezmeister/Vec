@@ -473,7 +473,7 @@ void draw_entities(GameState& state, u32 ticks)
             GLuint shader = renderstate.shaders.player;
             glUseProgram(shader);
             set_uniform(shader, "offset", e.pos);
-            set_uniform(shader, "rotation", state.player.rotation);
+            set_uniform(shader, "rotation", e.rotation);
             set_uniform(shader, "ticks", ticks);
             set_uniform(shader, "scale", 1);
             draw_array(renderstate.vbo.player);
