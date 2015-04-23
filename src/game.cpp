@@ -12,6 +12,7 @@ struct _GameParams {
 
 void collide(GameState& state);
 void add_entity(GameState& state, Entity& e);
+void destroy_entity(GameState& state, Entity& e);
 
 float mag_squared(const bml::Vec& vec)
 {
@@ -30,6 +31,7 @@ void init(GameState& state)
         e.vel.x = (rand() % MAX_ENEMIES) / (float)MAX_ENEMIES;
         e.vel.y = (rand() % MAX_ENEMIES) / (float)MAX_ENEMIES;
         e.life = 1;
+        e.hue = (rand() % 360) / 360.0;
         add_entity(state, e);
     }
 }
@@ -123,11 +125,13 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
         // Turds & Novae
         case E_TURD:
         case E_NOVA:
-            e.life -= 0.001;
+            e.life -= 0.01;
             continue;
 
-        // Enemies
+        // Enemies/XP Chunks
         case E_ENEMY:
+            e.hue += 0.01;
+        case E_XPCHUNK:
             e.pos += e.vel * params.enemyspeed;
             if (e.pos.x < -1.0) e.pos.x += 2.0;
             if (e.pos.y < -1.0) e.pos.y += 2.0;
@@ -157,23 +161,7 @@ bool check_collision(Entity& a, Entity& b)
     // TODO variable hitbxes
     if (mag_squared(a.pos - b.pos) < params.hitbox)
     {
-// XXX Lord this is hackish. Hao fix?
-#define WHEN_COLLIDE(type1, type2) if ((a.type == type1 && b.type == type2 )|| (a.type == type2 && b.type == type1))
-#define THEN_THE(type1) (a.type == type1 ? a : b)
-        WHEN_COLLIDE(E_TURD, E_ENEMY)
-        {
-            THEN_THE(E_TURD).life = 0;
-            THEN_THE(E_ENEMY).life -= 0.1;
-            return true;
-        }
-        WHEN_COLLIDE(E_BULLET, E_ENEMY)
-        {
-            THEN_THE(E_BULLET).life = 0;
-            THEN_THE(E_ENEMY).life -= 0.1;
-            return true;
-        }
-#undef WHEN_COLLIDE
-#undef THEN_THE
+        return true;
     }
     return false;
 }
@@ -186,13 +174,61 @@ void add_entity(GameState& state, Entity& e)
     state.entities[state.next] = e;
 }
 
+void destroy_entity(GameState& state, Entity& e)
+{
+    e.life = 0;
+    if (e.type == E_ENEMY)
+    {
+        for (int i = 0; i < 4; ++i)
+        {
+            Entity xp = {0};
+            xp.type = E_XPCHUNK;
+            xp.pos = e.pos;
+            xp.vel.x = e.vel.x + bml::normrand() * 0.5;
+            xp.vel.y = e.vel.y + bml::normrand() * 0.5;
+            xp.life = 1;
+            xp.hue = e.hue;
+            add_entity(state, xp);
+        }
+    }
+}
+
 void collide(GameState& state)
 {
     // Check ent-ent collisions
     for (int i =   0; i < MAX_ENTITIES; ++i)
         for (int j = i+1; j < MAX_ENTITIES; ++j)
         {
-            check_collision(state.entities[i], state.entities[j]);
+            Entity& a = state.entities[i], 
+                    b = state.entities[j];
+            if (check_collision(a, b))
+            {
+// XXX Lord this is hackish. Hao fix?
+#define WHEN_COLLIDE(type1, type2) if ((a.type == type1 && b.type == type2 )|| (a.type == type2 && b.type == type1))
+#define THEN_THE(type1) (a.type == type1 ? a : b)
+                WHEN_COLLIDE(E_TURD, E_ENEMY)
+                {
+                    THEN_THE(E_TURD).life = 0;
+                    Entity& enemy = THEN_THE(E_ENEMY);
+                    enemy.life -= 0.1;
+                    if (enemy.life <= 0)
+                    {
+                        destroy_entity(state, enemy);
+                    }
+                }
+                WHEN_COLLIDE(E_BULLET, E_ENEMY)
+                {
+                    THEN_THE(E_BULLET).life = 0;
+                    Entity& enemy = THEN_THE(E_ENEMY);
+                    enemy.life -= 0.1;
+                    if (enemy.life <= 0)
+                    {
+                        destroy_entity(state, enemy);
+                    }
+                }
+#undef WHEN_COLLIDE
+#undef THEN_THE
+            }
         }
 
     // Handle player collisions
@@ -207,7 +243,7 @@ void collide(GameState& state)
         if (mag_squared(e.pos - state.player.pos) < params.hitbox)
         {
             // Collect bullets to grow (TODO this is a stupid mechanic)
-            if (e.type == E_BULLET && e.life < 800)
+            if (e.type == E_XPCHUNK)
             {
                 state.player.size *= 1.1;
                 e.life = 0;

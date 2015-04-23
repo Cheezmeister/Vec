@@ -99,6 +99,7 @@ typedef struct _RenderState {
         GLuint turd;
         GLuint viewport;
         GLuint nova;
+        GLuint xpchunk;
     } shaders;
     struct _VBOs {
         VBO enemy;
@@ -343,14 +344,15 @@ void init()
                       "#version 120 \n"
                       "varying vec4 glPos; "
                       "uniform float ticks; "
-                      "uniform float a; "
+                      "uniform float a = 1.0;"
+                      "uniform float hue = 0.5; "
                       "const float mPI = 3.14159;"
                       INCLUDE_COMMON_GLSL
                       "void main() { "
                       "  float phase = ticks * 1 / 1000.0;"
-                      "  float h = 0.5; "
+                      "  float h = hue; "
                       "  float s = 1.0; "
-                      "  float v = 0.5 + 0.5 * nsin(phase * mPI); "
+                      "  float v = 0.2 + 0.8 * nsin(phase * mPI); "
                       "  vec3 rgb = hsv2rgb(vec3(h, s, v)); "
                       "  gl_FragColor = vec4(rgb, a); "
                       "} "
@@ -399,6 +401,7 @@ void init()
     renderstate.shaders.viewport = make_shader(vs_pulse, fs_scintillate);
     renderstate.shaders.turd = make_shader(vs_wiggle, fs_scintillate);
     renderstate.shaders.nova = make_shader(vs_wiggle, fs_circle);
+    renderstate.shaders.xpchunk = make_shader(vs_pulse, fs_pulse);
 
     // Misc setup
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -510,6 +513,17 @@ void draw_entities(GameState& state, u32 ticks)
             set_uniform(shader, "radius", (100 - 100*e.life));
             draw_array(renderstate.vbo.nova);
         }
+        if (e.type == E_XPCHUNK)
+        {
+            GLuint shader = renderstate.shaders.xpchunk;
+            glUseProgram(shader);
+            set_uniform(shader, "offset", e.pos);
+            set_uniform(shader, "rotation", 0.0);
+            set_uniform(shader, "scale", 0.4);
+            set_uniform(shader, "ticks", ticks);
+            set_uniform(shader, "hue", e.hue);
+            draw_array(renderstate.vbo.enemy);
+        }
         if (e.type == E_ENEMY)
         {
             GLuint shader = renderstate.shaders.enemy;
@@ -518,6 +532,7 @@ void draw_entities(GameState& state, u32 ticks)
             set_uniform(shader, "rotation", ticks / 400.0f);
             set_uniform(shader, "scale", 0.6);
             set_uniform(shader, "ticks", ticks);
+            set_uniform(shader, "hue", e.hue);
             draw_array(renderstate.vbo.enemy);
         }
     }

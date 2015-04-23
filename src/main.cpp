@@ -75,7 +75,8 @@ Input handle_input()
         if (event.type == SDL_KEYDOWN)
         {
             if (event.key.keysym.sym == SDLK_ESCAPE) ret.quit = true;
-            if (event.key.keysym.sym == SDLK_SPACE) ret.shoot = true;
+            if (event.key.keysym.sym == SDLK_SPACE) ret.auxshoot = true;
+            if (event.key.keysym.sym == SDLK_LSHIFT) ret.auxpoop = true;
         }
 
         if (event.type == SDL_WINDOWEVENT)
@@ -116,10 +117,10 @@ Input handle_input()
         //      A simple hack around, assign devices in the order they were used.
         static int leftmouse = -1;
         static int rightmouse = -1;
-        if (leftmouse < 0)
-            leftmouse = mme.device;
-        else if (rightmouse < 0 && mme.device != leftmouse)
+        if (rightmouse < 0)
             rightmouse = mme.device;
+        else if (leftmouse < 0 && mme.device != rightmouse)
+            leftmouse = mme.device;
 
         if (mme.type == MANYMOUSE_EVENT_RELMOTION)
         {
@@ -148,7 +149,6 @@ Input handle_input()
                     state.button.right1 = pressed;
             }
         }
-        // TODO Do we need ABSMOTION for some platforms?
     }
 
     // Process MM state
@@ -163,7 +163,8 @@ Input handle_input()
     ret.axes.y1 -= 1.0 * (keystate[SDL_SCANCODE_S]);
     ret.axes.x1 += 1.0 * (keystate[SDL_SCANCODE_D]);
     ret.axes.x1 -= 1.0 * (keystate[SDL_SCANCODE_A]);
-    ret.poop |= (0 != keystate[SDL_SCANCODE_R]);
+    ret.shoot |= (0 != keystate[SDL_SCANCODE_E]);
+    ret.poop |= (0 != keystate[SDL_SCANCODE_Q]);
 
     // Poll gamepad
     float deadzone = 0.05;

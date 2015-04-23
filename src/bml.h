@@ -50,5 +50,12 @@ static Vec operator *(const Vec& lhs, float rhs)
     Vec ret = {lhs.x * rhs, lhs.y * rhs};
     return ret;
 }
+
+// random float between -1 and 1
+static float normrand()
+{
+    return (float)(rand() % INT_MAX) * 2 / (float)INT_MAX - 1.0;
 }
+
+} // namespace bml
 

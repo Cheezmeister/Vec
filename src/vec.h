@@ -22,6 +22,7 @@ typedef struct _Input {
 
 } Input;
 
+// Entity types
 enum {
     E_FIRST = 1,
     E_BULLET = 1,
@@ -29,14 +30,13 @@ enum {
     E_TURD,
     E_NOVA,
     E_ENEMY,
+    E_XPCHUNK,
     E_LAST,
 };
 typedef int EType;
 
-const int MAX_BULLETS = 500;
 const int MAX_ENEMIES = 12;
-const int MAX_TURDS = 50;
-const int MAX_ENTITIES = MAX_TURDS + MAX_ENEMIES + MAX_BULLETS;
+const int MAX_ENTITIES = 500;
 
 typedef struct Entity {
     EType type;
@@ -44,6 +44,7 @@ typedef struct Entity {
     bml::Vec pos;
     bml::Vec vel;
     float rotation;
+    float hue;
 } Entity;
 
 typedef struct _GameState {
