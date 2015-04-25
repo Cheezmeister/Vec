@@ -21,7 +21,7 @@ set(VERSION_STRING "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR
 cmake_policy(VERSION 2.8)
 
 #declare the project
-project(${PROJECT_NAME} VERSION ${VERSION_STRING})
+project(${PROJECT_NAME})
 
 #Find required tools (SDL, GL, GLEW)
 find_package(SDL REQUIRED)

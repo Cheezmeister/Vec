@@ -1,5 +1,5 @@
 #include <cmath>
-#include <GL/glew.h>
+#include <SDL.h>
 #include "crossgl.h"
 #include "vec.h"
 
@@ -11,10 +11,36 @@
 #define GL_ARRAY_BUFFER 0x8892
 #define GL_STATIC_DRAW 0x88E4
 #define GL_FRAGMENT_SHADER 0x8B30
+// Kids, macros are bad and variadic macros are worse. Don't be like me. Use glew instead. 
+#define DAMNIT_OPENGL_IT_EXISTS(function, retval, ...) \
+	typedef retval (APIENTRY *Fn##function)(__VA_ARGS__); \
+	Fn##function gl##function
+#define DAMNIT_OPENGL_GIMME(function) \
+	gl##function = (Fn##function)SDL_GL_GetProcAddress("gl" #function)
 
 typedef char GLchar;
-typedef GLuint(APIENTRY * PFNGLCREATESHADERPROC) (GLenum type);
 
+DAMNIT_OPENGL_IT_EXISTS(CreateShader, GLuint, GLenum);
+DAMNIT_OPENGL_IT_EXISTS(ShaderSource, void, GLuint, GLsizei, const GLchar*const*, const GLint*);
+DAMNIT_OPENGL_IT_EXISTS(CompileShader, void, GLuint);
+DAMNIT_OPENGL_IT_EXISTS(GetShaderiv, void, GLuint, GLuint, GLint*);
+DAMNIT_OPENGL_IT_EXISTS(GetShaderInfoLog, void, GLuint, GLsizei, GLsizei*, GLchar*);
+DAMNIT_OPENGL_IT_EXISTS(CreateProgram, GLuint);
+DAMNIT_OPENGL_IT_EXISTS(AttachShader, void, GLuint, GLuint);
+DAMNIT_OPENGL_IT_EXISTS(LinkProgram, void, GLuint);
+DAMNIT_OPENGL_IT_EXISTS(GetProgramiv, void, GLuint, GLenum, GLint*);
+DAMNIT_OPENGL_IT_EXISTS(GetProgramInfoLog, void, GLuint, GLsizei, GLsizei*, GLchar*);
+DAMNIT_OPENGL_IT_EXISTS(DetachShader, void, GLuint, GLuint);
+DAMNIT_OPENGL_IT_EXISTS(GetUniformLocation, GLint, GLuint, const GLchar*);
+DAMNIT_OPENGL_IT_EXISTS(Uniform1f, void, GLint, GLfloat);
+DAMNIT_OPENGL_IT_EXISTS(Uniform2f, void, GLint, GLfloat, GLfloat);
+DAMNIT_OPENGL_IT_EXISTS(GenBuffers, void, GLsizei, GLuint*);
+DAMNIT_OPENGL_IT_EXISTS(BindBuffer, void, GLint, GLuint);
+DAMNIT_OPENGL_IT_EXISTS(BufferData, void, GLenum, ptrdiff_t, const void*, GLenum);
+DAMNIT_OPENGL_IT_EXISTS(EnableVertexAttribArray, void, GLuint);
+DAMNIT_OPENGL_IT_EXISTS(DisableVertexAttribArray, void, GLuint);
+DAMNIT_OPENGL_IT_EXISTS(VertexAttribPointer, void, GLuint, GLint , GLenum , GLboolean , GLsizei , const void* );
+DAMNIT_OPENGL_IT_EXISTS(UseProgram, void, GLuint);
 
 // http://stackoverflow.com/a/13874526
 #define MAKE_SHADER(version, shader)  "#version " #version "\n" #shader
@@ -139,13 +165,26 @@ RenderParams params = {
     { 0.0025f }
 };
 
+string gl_error_string(GLenum error)
+{
+	switch (error)
+	{
+	case GL_INVALID_ENUM: return "[GL_INVALID_ENUM] An unacceptable value is specified for an enumerated argument. The offending command is ignored and has no other side effect than to set the error flag.";
+	case GL_INVALID_VALUE: return "[GL_INVALID_VALUE] A numeric argument is out of range. The offending command is ignored and has no other side effect than to set the error flag.";
+	case GL_INVALID_OPERATION: return "[GL_INVALID_OPERATION] The specified operation is not allowed in the current state. The offending command is ignored and has no other side effect than to set the error flag.";
+	case GL_OUT_OF_MEMORY: return "[GL_OUT_OF_MEMORY] There is not enough memory left to execute the command. The state of the GL is undefined, except for the state of the error flags, after this error is recorded.";
+	case GL_STACK_UNDERFLOW: return "[GL_STACK_UNDERFLOW] An attempt has been made to perform an operation that would cause an internal stack to underflow.";
+	case GL_STACK_OVERFLOW: return "[GL_STACK_OVERFLOW] An attempt has been made to perform an operation that would cause an internal stack to overflow.";
+	}
+	return "Unknown error!";
+}
 // Check for GL errors
 void check_error(const string& message)
 {
-    GLenum error = glGetError();
+	GLenum error = glGetError();
     if (error)
     {
-        logger << message.c_str() << " reported error: " << error << ' ' << gluErrorString(error) << endl;
+        logger << message.c_str() << " reported error: " << error << ' ' << gl_error_string(error) << endl;
     }
 }
 
@@ -277,6 +316,30 @@ GLuint make_shader(GLuint vertex, GLuint fragment)
 
 void init()
 {
+
+	DAMNIT_OPENGL_GIMME(CreateShader);
+	DAMNIT_OPENGL_GIMME(ShaderSource);
+	DAMNIT_OPENGL_GIMME(CompileShader);
+	DAMNIT_OPENGL_GIMME(GetShaderiv);
+	DAMNIT_OPENGL_GIMME(GetShaderInfoLog);
+	DAMNIT_OPENGL_GIMME(CreateProgram);
+	DAMNIT_OPENGL_GIMME(AttachShader);
+	DAMNIT_OPENGL_GIMME(LinkProgram);
+	DAMNIT_OPENGL_GIMME(GetProgramiv);
+	DAMNIT_OPENGL_GIMME(GetProgramInfoLog);
+	DAMNIT_OPENGL_GIMME(DetachShader);
+	DAMNIT_OPENGL_GIMME(GetUniformLocation);
+	DAMNIT_OPENGL_GIMME(Uniform1f);
+	DAMNIT_OPENGL_GIMME(Uniform2f);
+	DAMNIT_OPENGL_GIMME(GenBuffers);
+	DAMNIT_OPENGL_GIMME(BindBuffer);
+	DAMNIT_OPENGL_GIMME(BufferData);
+	DAMNIT_OPENGL_GIMME(EnableVertexAttribArray);
+	DAMNIT_OPENGL_GIMME(DisableVertexAttribArray);
+	DAMNIT_OPENGL_GIMME(VertexAttribPointer);
+	DAMNIT_OPENGL_GIMME(UseProgram);
+
+
 #define INCLUDE_COMMON_GLSL \
     "float ncos(float a) {" \
     "  return 0.5 + cos(a)/2;" \
@@ -415,11 +478,12 @@ void init()
     renderstate.shaders.viewport = make_shader(vs_pulse, fs_scintillate);
     renderstate.shaders.turd = make_shader(vs_wiggle, fs_scintillate);
     renderstate.shaders.nova = make_shader(vs_wiggle, fs_circle);
-    renderstate.shaders.xpchunk = make_shader(vs_pulse, fs_pulse);
+	renderstate.shaders.xpchunk = make_shader(vs_pulse, fs_pulse);
 
 	// Get GL's wack runtime function pointers
 
-    // Misc setup
+
+	// Misc setup
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     check_error("clearcolor");
 }
