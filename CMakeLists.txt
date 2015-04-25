@@ -21,12 +21,11 @@ set(VERSION_STRING "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR
 cmake_policy(VERSION 2.8)
 
 #declare the project
-project(${PROJECT_NAME} VERSION ${VERSION_STRING})
+project(${PROJECT_NAME} )
 
 #Find required tools (SDL, GL, GLEW)
 find_package(SDL REQUIRED)
 find_package(OpenGL REQUIRED)
-find_package(GLEW REQUIRED)
 list(APPEND LINKED_LIBS ${SDL_LIBRARY})
 list(APPEND LINKED_LIBS ${SDLMAIN_LIBRARY})
 list(APPEND LINKED_LIBS ${OPENGL_LIBRARY})
@@ -39,8 +38,8 @@ endif()
 # Slap together search paths
 list(APPEND EXTRA_INCLUDE_DIRECTORIES ${SDL_INCLUDE_DIR})
 list(APPEND EXTRA_INCLUDE_DIRECTORIES ${OPENGL_INCLUDE_DIR})
-list(APPEND EXTRA_INCLUDE_DIRECTORIES ${GLEW_INCLUDE_DIR})
 list(APPEND EXTRA_INCLUDE_DIRECTORIES vendor/manymouse)
+list(APPEND EXTRA_INCLUDE_DIRECTORIES vendor/glew)
 
 #grab source files
 file(GLOB_RECURSE HEADERS ${CMAKE_SOURCE_DIR}/src/*.h)
@@ -54,6 +53,7 @@ list(APPEND SOURCES
   vendor/manymouse/macosx_hidutilities.c
   vendor/manymouse/linux_evdev.c
   vendor/manymouse/x11_xinput2.c
+  vendor/glew/glew.c
 )
 
 #declare the target program
