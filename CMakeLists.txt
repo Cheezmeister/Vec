@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 2.6)
 #definitions
 set(PROJECT_NAME "Vec")
 set(APP_NAME vec)
-set(PROJECT_VERSION 1 0 1)
+set(PROJECT_VERSION 1 0 2)
 set(DESCRIPTION "Dual-mouse arcade thing")
 set(README README.txt)
 set(LICENSE ${README})
@@ -32,6 +32,7 @@ list(APPEND LINKED_LIBS ${OPENGL_LIBRARY})
 if(APPLE) # ManyMouse OSX depends on this wonkiness
   find_library(IOKIT IOKit)
   list(APPEND LINKED_LIBS ${IOKIT})
+  set(APP_SUFFIX "osx")
 endif()
 
 
@@ -67,7 +68,7 @@ set_property(
 )
 
 set_target_properties(${APP_NAME} PROPERTIES
-  OUTPUT_NAME "${APP_NAME}-${VERSION_STRING}${APP_SUFFIX}"
+  OUTPUT_NAME "${APP_NAME}-${VERSION_STRING}-${APP_SUFFIX}"
 )
 
 target_link_libraries(${APP_NAME} ${LINKED_LIBS})
