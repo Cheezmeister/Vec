@@ -183,12 +183,10 @@ void print_info()
     SDL_VERSION(&version);
     cout << "SDL version: " << (int)version.major << "." << (int)version.minor << (int)version.patch << endl;
     SDL_GetVersion(&version);
-    cout << "runtime version: " << (int)version.major << "." << (int)version.minor << (int)version.patch << endl;
+    cout << "SDL runtime: " << (int)version.major << "." << (int)version.minor << (int)version.patch << endl;
     printf("OpenGL vendor: '%s'\n" , glGetString(GL_VENDOR));
     printf("OpenGL renderer: '%s'\n" , glGetString(GL_RENDERER));
     printf("OpenGL version: '%s'\n" , glGetString(GL_VERSION));
-    printf("GLSL version: '%s'\n" , glGetString(GL_SHADING_LANGUAGE_VERSION));
-    printf("GLEW version: %s\n", glewGetString(GLEW_VERSION));
 }
 
 void loop()
@@ -267,14 +265,6 @@ int main(int argc, char** argv)
     {
         cerr << "Couldn't get a gl context: " << SDL_GetError();
         return 3;
-    }
-
-    // Massage GL some more
-    GLenum err = glewInit();
-    if (GLEW_OK != err)
-    {
-        fprintf(stderr, "Error: %s\n", glewGetErrorString(err));
-        return 4;
     }
 
     // Fire up ManyMouse

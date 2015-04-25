@@ -1,6 +1,20 @@
 #include <cmath>
+#include <GL/glew.h>
 #include "crossgl.h"
 #include "vec.h"
+
+// Mini-GLEW
+#define GL_COMPILE_STATUS 0x8B81
+#define GL_INFO_LOG_LENGTH 0x8B84
+#define GL_VERTEX_SHADER 0x8B31
+#define GL_LINK_STATUS 0x8B82
+#define GL_ARRAY_BUFFER 0x8892
+#define GL_STATIC_DRAW 0x88E4
+#define GL_FRAGMENT_SHADER 0x8B30
+
+typedef char GLchar;
+typedef GLuint(APIENTRY * PFNGLCREATESHADERPROC) (GLenum type);
+
 
 // http://stackoverflow.com/a/13874526
 #define MAKE_SHADER(version, shader)  "#version " #version "\n" #shader
@@ -402,6 +416,8 @@ void init()
     renderstate.shaders.turd = make_shader(vs_wiggle, fs_scintillate);
     renderstate.shaders.nova = make_shader(vs_wiggle, fs_circle);
     renderstate.shaders.xpchunk = make_shader(vs_pulse, fs_pulse);
+
+	// Get GL's wack runtime function pointers
 
     // Misc setup
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
