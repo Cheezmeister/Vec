@@ -31,7 +31,8 @@ list(APPEND LINKED_LIBS ${SDLMAIN_LIBRARY})
 list(APPEND LINKED_LIBS ${OPENGL_LIBRARY})
 if(APPLE) # ManyMouse OSX depends on this wonkiness
   find_library(IOKIT IOKit)
-  list(APPEND LINKED_LIBS ${IOKIT})
+  find_library(COREFOUNDATION CoreFoundation)
+  list(APPEND LINKED_LIBS ${IOKIT} ${COREFOUNDATION} )
   set(APP_SUFFIX "osx")
 endif()
 
