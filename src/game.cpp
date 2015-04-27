@@ -199,7 +199,7 @@ void collide(GameState& state)
     for (int i =   0; i < MAX_ENTITIES; ++i)
         for (int j = i+1; j < MAX_ENTITIES; ++j)
         {
-            Entity& a = state.entities[i], 
+            Entity& a = state.entities[i],
                     b = state.entities[j];
             if (check_collision(a, b))
             {

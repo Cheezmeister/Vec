@@ -18,11 +18,15 @@ typedef struct _Dimension2 {
     float y;
 } Dimension2;
 
-
-// Ugly nasty globals
-SDL_Window* win;
+// Commandline arguments
 Args args;
+
+// Window management
+bool fullscreen = false;
+SDL_Window* win;
 Dimension2 viewport;
+
+// Input state
 SDL_GameController* controller = NULL;
 
 int parse_args(int argc, char** argv, Args* outArgs)
@@ -46,6 +50,28 @@ float get_axis(SDL_GameControllerAxis which, float deadzone)
     float normalized = SDL_GameControllerGetAxis(controller, which) / (float)32767;
     if (fabs(normalized) < deadzone) return 0;
     return normalized;
+}
+
+int enter_fullscreen()
+{
+    SDL_DisplayMode dm;
+    if (SDL_GetDesktopDisplayMode(0, &dm) != 0) 
+    {
+        fprintf(stderr, "SDL_GetDesktopDisplayMode failed: %s", SDL_GetError());
+        return 1;
+    }
+    if (SDL_SetWindowDisplayMode(win, &dm))
+    {
+        fprintf(stderr, "SDL_SetWindowDisplayMode failed: %s", SDL_GetError());
+        return 2;
+    }
+    if (SDL_SetWindowFullscreen(win, SDL_WINDOW_FULLSCREEN))
+    {
+        cerr << "Error going fullscreen: " << SDL_GetError() << endl;;
+        return 3;
+    }
+    SDL_ShowCursor(SDL_DISABLE);
+    return 0;
 }
 
 Input handle_input()
@@ -76,6 +102,10 @@ Input handle_input()
         if (event.type == SDL_KEYDOWN)
         {
             if (event.key.keysym.sym == SDLK_ESCAPE) ret.quit = true;
+            if (event.key.keysym.sym == SDLK_f)
+            {
+                if (enter_fullscreen()) continue;
+            }
             if (event.key.keysym.sym == SDLK_SPACE) ret.auxshoot = true;
             if (event.key.keysym.sym == SDLK_LSHIFT) ret.auxpoop = true;
         }
@@ -88,9 +118,12 @@ Input handle_input()
                 int y = event.window.data2;
                 viewport.x = x;
                 viewport.y = y;
-                int max = x > y ? x : y;
+                int maxdim = x > y ? x : y;
 
-                glViewport(0, 0, max, max);
+                int diff = x - y;
+                int xoffset = min( diff/2, 0);
+                int yoffset = min(-diff/2, 0);
+                glViewport(xoffset, yoffset, maxdim, maxdim);
             }
         }
 
@@ -126,10 +159,13 @@ Input handle_input()
         if (mme.type == MANYMOUSE_EVENT_RELMOTION)
         {
             // NOTE 'item' indicates which axis, 'device' indicates which mouse
-            float& axis = mme.item == 0 ?
+            bool xaxis = ( mme.item == 0 );
+            bool yaxis = !xaxis;
+            float& axis = xaxis ?
                           (mme.device == leftmouse ? ret.axes.x3 : state.axes.x2) :
                           (mme.device == leftmouse ? ret.axes.y3 : state.axes.y2);
-            float value = mme.value / (mme.item == 0 ? viewport.x : -viewport.y);
+            float value = mme.value / (float)max(viewport.x, viewport.y);
+            if (yaxis) value = -value;
             axis += value;
         }
         else if (mme.type == MANYMOUSE_EVENT_BUTTON)
@@ -202,7 +238,7 @@ void loop()
 
     SDL_ShowCursor(SDL_DISABLE);
 
-    while (!state.over)
+    while (true)
     {
         // Timing
         u32 ticks = SDL_GetTicks();

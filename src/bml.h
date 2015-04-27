@@ -10,7 +10,7 @@
 #define M_PI 3.1415926536
 #endif
 
-#define DEBUGVAR(x) bml::debug << #x " is " << x << endl;
+#define DEBUGVAR(x) bml::logger << #x " is " << x << endl;
 const char ESCAPE = '\e';
 
 typedef uint32_t u32;
@@ -18,7 +18,7 @@ typedef int32_t i32;
 
 namespace bml
 {
-static std::ostream& logger = std::cout;
+static std::ostream& logger = std::cerr;
 typedef struct _Vec {
     float x;
     float y;
