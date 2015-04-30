@@ -3,6 +3,11 @@
 
 using namespace std;
 
+#include "sfxd.h"
+// TODO message audio
+//void SFXD_MutateParams();
+//void SFXD_PlaySample(int channel = 0);
+
 namespace game {
 
 // TODO cleanup
@@ -177,9 +182,15 @@ void add_entity(GameState& state, Entity& e)
 void destroy_entity(GameState& state, Entity& e)
 {
     e.life = 0;
-    if (e.type == E_ENEMY)
+
+	// Propogate event for gfx/audio
+	Event& evt = state.events[state.next_event++];
+	evt.type = Event::T_ENT_DESTROYED;
+	evt.entity = e.type;
+	
+	if (e.type == E_ENEMY)
     {
-        for (int i = 0; i < 4; ++i)
+		for (int i = 0; i < 4; ++i)
         {
             Entity xp = {0};
             xp.type = E_XPCHUNK;
@@ -246,7 +257,7 @@ void collide(GameState& state)
             if (e.type == E_XPCHUNK)
             {
                 state.player.size *= 1.1;
-                e.life = 0;
+				destroy_entity(state, e);
             }
 
             // Enemies cause shrinkage

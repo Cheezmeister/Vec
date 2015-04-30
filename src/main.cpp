@@ -70,6 +70,8 @@ int enter_fullscreen()
         cerr << "Error going fullscreen: " << SDL_GetError() << endl;;
         return 3;
     }
+	SDL_GetCurrentDisplayMode(0, &dm);
+	cout << "Entered fullscreen at " << dm.w << "x" << dm.h << "@" << dm.refresh_rate << "Hz\n";
     SDL_ShowCursor(SDL_DISABLE);
     return 0;
 }
@@ -204,7 +206,7 @@ Input handle_input()
     ret.poop |= (0 != keystate[SDL_SCANCODE_Q]);
 
     // Poll gamepad
-    float deadzone = 0.05;
+    float deadzone = 0.15;
     ret.axes.x1 += get_axis(SDL_CONTROLLER_AXIS_LEFTX, deadzone);
     ret.axes.x2 += get_axis(SDL_CONTROLLER_AXIS_RIGHTX, deadzone);
     ret.axes.y1 -= get_axis(SDL_CONTROLLER_AXIS_LEFTY, deadzone);
@@ -233,12 +235,14 @@ void loop()
 
     GameState state = {0};
 
-    gfx::init();
     game::init(state);
+    gfx::init();
+	audio::init();
 
     SDL_ShowCursor(SDL_DISABLE);
 
-    while (true)
+	// TODO un-hard-code FPS and BPM
+    while (!state.over)
     {
         // Timing
         u32 ticks = SDL_GetTicks();
@@ -247,11 +251,18 @@ void loop()
         Input input = handle_input();
         if (input.quit) break;
 
+		// Zero out events. Sophisticated, I know.
+		memset(&state.events, 0, sizeof(state.events));
+		state.next_event = 0;
+
         // Process gameplay
         game::update(state, ticks, args.debug, input);
 
         // Render graphics
         gfx::render(state, ticks, args.debug);
+
+		// Update audio
+		audio::update(state, ticks);
 
         // Commit
         SDL_GL_SwapWindow(win);

@@ -42,6 +42,7 @@ list(APPEND EXTRA_INCLUDE_DIRECTORIES ${SDL_INCLUDE_DIR})
 list(APPEND EXTRA_INCLUDE_DIRECTORIES ${OPENGL_INCLUDE_DIR})
 list(APPEND EXTRA_INCLUDE_DIRECTORIES vendor/manymouse)
 list(APPEND EXTRA_INCLUDE_DIRECTORIES vendor/glew)
+list(APPEND EXTRA_INCLUDE_DIRECTORIES vendor/sfxd)
 
 #grab source files
 file(GLOB_RECURSE HEADERS ${CMAKE_SOURCE_DIR}/src/*.h)
@@ -49,6 +50,7 @@ list(APPEND SOURCES
   src/main.cpp 
   src/game.cpp 
   src/gfx.cpp
+  src/audio.cpp
   vendor/manymouse/windows_wminput.c
   vendor/manymouse/manymouse.c
   vendor/manymouse/macosx_hidmanager.c
@@ -56,6 +58,7 @@ list(APPEND SOURCES
   vendor/manymouse/linux_evdev.c
   vendor/manymouse/x11_xinput2.c
   vendor/glew/glew.c
+  vendor/sfxd/sfxd.cpp
 )
 
 #declare the target program
