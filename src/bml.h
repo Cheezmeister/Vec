@@ -57,5 +57,15 @@ static float normrand()
     return (float)(rand() % INT_MAX) * 2 / (float)INT_MAX - 1.0;
 }
 
+static int maximum(int a, int b)
+{
+    return a > b ? a : b;
+}
+
+static int minimum(int a, int b)
+{
+    return a < b ? a : b;
+}
+
 } // namespace bml
 

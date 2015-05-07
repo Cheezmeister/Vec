@@ -3,11 +3,6 @@
 
 using namespace std;
 
-#include "sfxd.h"
-// TODO message audio
-//void SFXD_MutateParams();
-//void SFXD_PlaySample(int channel = 0);
-
 namespace game {
 
 // TODO cleanup
@@ -35,7 +30,7 @@ void init(GameState& state)
         e.pos.y = (rand() % MAX_ENEMIES) / (float)MAX_ENEMIES;
         e.vel.x = (rand() % MAX_ENEMIES) / (float)MAX_ENEMIES;
         e.vel.y = (rand() % MAX_ENEMIES) / (float)MAX_ENEMIES;
-        e.life = 1;
+        e.life = 3;
         e.hue = (rand() % 360) / 360.0;
         add_entity(state, e);
     }
@@ -62,17 +57,16 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
     if (input.shoot)
     {
         Entity b = {0};
-        b.life = 1000;
+        b.life = 1.0;
         b.type = E_BULLET;
         b.vel = state.player.reticle - state.player.pos;
         b.pos = state.player.pos;
         add_entity(state, b);
     }
-
     if (input.auxshoot)
     {
         Entity b = {0};
-        b.life = 1000; // TODO normalize bullet life
+        b.life = 1.0;
         b.type = E_ROCKET;
         b.vel = state.player.reticle - state.player.pos;
         b.pos = state.player.pos;
@@ -89,7 +83,6 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
         t.life = 1;
         add_entity(state, t);
     }
-
     if (input.auxpoop)
     {
         Entity t = {0};
@@ -123,7 +116,7 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
         // Bullets/Rockets
         case E_BULLET:
         case E_ROCKET:
-            e.life--;
+            e.life -= 0.01;
             e.pos += e.vel * params.bulletspeed;
             continue;
 
@@ -183,14 +176,14 @@ void destroy_entity(GameState& state, Entity& e)
 {
     e.life = 0;
 
-	// Propogate event for gfx/audio
-	Event& evt = state.events[state.next_event++];
-	evt.type = Event::T_ENT_DESTROYED;
-	evt.entity = e.type;
-	
-	if (e.type == E_ENEMY)
+    // Propogate event for gfx/audio
+    Event& evt = state.events[state.next_event++];
+    evt.type = Event::T_ENT_DESTROYED;
+    evt.entity = e.type;
+
+    if (e.type == E_ENEMY)
     {
-		for (int i = 0; i < 4; ++i)
+        for (int i = 0; i < 4; ++i)
         {
             Entity xp = {0};
             xp.type = E_XPCHUNK;
@@ -257,7 +250,7 @@ void collide(GameState& state)
             if (e.type == E_XPCHUNK)
             {
                 state.player.size *= 1.1;
-				destroy_entity(state, e);
+                destroy_entity(state, e);
             }
 
             // Enemies cause shrinkage

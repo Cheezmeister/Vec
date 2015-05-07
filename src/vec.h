@@ -14,7 +14,7 @@ enum {
     E_LAST,
 };
 
-const int MAX_ENEMIES = 12;
+const int MAX_ENEMIES = 15;
 const int MAX_ENTITIES = 500;
 const int MAX_EVENTS = 20;
 
@@ -28,12 +28,12 @@ typedef struct _Entity {
 } Entity;
 
 typedef struct _Event {
-	enum Type {
-		T_ENT_DESTROYED,
-		T_LAST
-	} type;
+    enum Type {
+        T_ENT_DESTROYED,
+        T_LAST
+    } type;
 
-	EType entity;
+    EType entity;
 } Event;
 
 typedef struct _GameState {
@@ -41,8 +41,8 @@ typedef struct _GameState {
     Entity entities[MAX_ENTITIES];
     int next;
 
-	Event events[MAX_EVENTS];
-	int next_event;
+    Event events[MAX_EVENTS];
+    int next_event;
 
     struct _Player {
         bml::Vec pos;
@@ -51,48 +51,53 @@ typedef struct _GameState {
         float rotation; // radians
         float phase; // norm
         bml::Vec reticle;
+        u32 lastkill;
     } player;
 
     bool over; // game over?
 } GameState;
 
 typedef struct _Input {
-	bool quit;
+    bool quit;
 
-	// Normalized (-1.0 <-> 1.0) axes
-	struct _Axes {
-		float x1;
-		float x2;
-		float x3;
-		float y1;
-		float y2;
-		float y3;
-	} axes;
+    // Normalized (-1.0 <-> 1.0) axes
+    struct _Axes {
+        float x1;
+        float x2;
+        float x3;
+        float y1;
+        float y2;
+        float y3;
+    } axes;
 
-	bool pause;
+    bool pause;
 
-	bool shoot; // primary fire is held
-	bool poop; // primary poop is held
-	bool auxshoot; // aux fire was pressed
-	bool auxpoop; // aux poop was pressed
+    bool shoot; // primary fire is held
+    bool poop; // primary poop is held
+    bool auxshoot; // aux fire was pressed
+    bool auxpoop; // aux poop was pressed
 
 } Input;
 
+static float beats_per_minute()
+{
+    return 120;
+}
 
 namespace gfx
 {
-	void init();
-	void render(GameState& state, u32 ticks, bool debug);
+void init();
+void render(GameState& state, u32 ticks, bool debug);
 }
 
 namespace game
 {
-	void init(GameState& state);
-	void update(GameState& state, u32 ticks, bool debug, const Input& input);
+void init(GameState& state);
+void update(GameState& state, u32 ticks, bool debug, const Input& input);
 }
 
 namespace audio
 {
-	void init();
-	void update(const GameState& state, u32 ticks);
+void init(u32 ticks);
+void update(const GameState& state, u32 ticks);
 }

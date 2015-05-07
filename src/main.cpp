@@ -55,7 +55,7 @@ float get_axis(SDL_GameControllerAxis which, float deadzone)
 int enter_fullscreen()
 {
     SDL_DisplayMode dm;
-    if (SDL_GetDesktopDisplayMode(0, &dm) != 0) 
+    if (SDL_GetDesktopDisplayMode(0, &dm) != 0)
     {
         fprintf(stderr, "SDL_GetDesktopDisplayMode failed: %s", SDL_GetError());
         return 1;
@@ -70,8 +70,8 @@ int enter_fullscreen()
         cerr << "Error going fullscreen: " << SDL_GetError() << endl;;
         return 3;
     }
-	SDL_GetCurrentDisplayMode(0, &dm);
-	cout << "Entered fullscreen at " << dm.w << "x" << dm.h << "@" << dm.refresh_rate << "Hz\n";
+    SDL_GetCurrentDisplayMode(0, &dm);
+    cout << "Entered fullscreen at " << dm.w << "x" << dm.h << "@" << dm.refresh_rate << "Hz\n";
     SDL_ShowCursor(SDL_DISABLE);
     return 0;
 }
@@ -116,15 +116,12 @@ Input handle_input()
         {
             if (event.window.event == SDL_WINDOWEVENT_RESIZED)
             {
-                int x = event.window.data1;
-                int y = event.window.data2;
-                viewport.x = x;
-                viewport.y = y;
+                int x = viewport.x = event.window.data1;
+                int y = viewport.y = event.window.data2;
                 int maxdim = x > y ? x : y;
 
-                int diff = x - y;
-                int xoffset = min( diff/2, 0);
-                int yoffset = min(-diff/2, 0);
+                int xoffset = min( (x - y) / 2, 0);
+                int yoffset = min(-(x - y) / 2, 0);
                 glViewport(xoffset, yoffset, maxdim, maxdim);
             }
         }
@@ -166,7 +163,7 @@ Input handle_input()
             float& axis = xaxis ?
                           (mme.device == leftmouse ? ret.axes.x3 : state.axes.x2) :
                           (mme.device == leftmouse ? ret.axes.y3 : state.axes.y2);
-            float value = mme.value / (float)max(viewport.x, viewport.y);
+            float value = mme.value / (float)bml::maximum(viewport.x, viewport.y);
             if (yaxis) value = -value;
             axis += value;
         }
@@ -237,38 +234,48 @@ void loop()
 
     game::init(state);
     gfx::init();
-	audio::init();
+    audio::init(SDL_GetTicks());
 
     SDL_ShowCursor(SDL_DISABLE);
 
-	// TODO un-hard-code FPS and BPM
+    // TODO un-hard-code FPS and BPM
     while (!state.over)
     {
         // Timing
         u32 ticks = SDL_GetTicks();
+        u32 before = ticks;
+        u32 after;
 
         // Input
         Input input = handle_input();
         if (input.quit) break;
 
-		// Zero out events. Sophisticated, I know.
-		memset(&state.events, 0, sizeof(state.events));
-		state.next_event = 0;
+        // Zero out events. Sophisticated, I know.
+        memset(&state.events, 0, sizeof(state.events));
+        state.next_event = 0;
 
         // Process gameplay
         game::update(state, ticks, args.debug, input);
+        after = SDL_GetTicks();
+        /* cerr << "Gameplay took " << (after - before) << endl; */
 
         // Render graphics
+        before = SDL_GetTicks();
         gfx::render(state, ticks, args.debug);
+        after = SDL_GetTicks();
+        /* cerr << "Render took " << (after - before) << endl; */
 
-		// Update audio
-		audio::update(state, ticks);
+        // Update audio
+        audio::update(state, ticks);
 
         // Commit
         SDL_GL_SwapWindow(win);
 
         // Finish frame
-        SDL_Delay(20);
+        u32 next = ticks + 20;
+        u32 now = SDL_GetTicks();
+        if (next > now)
+            SDL_Delay(next - now);
     }
 }
 

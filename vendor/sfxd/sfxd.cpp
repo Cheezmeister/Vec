@@ -297,9 +297,9 @@ void ResetSample(SFXD_Sample& channel, bool restart)
 
 	if (!restart)
 		channel.phase = 0;
-	channel.fperiod = 100.0 / (params.p_base_freq*params.p_base_freq + 0.001);
+	channel.fperiod = 100.0 / (params.p_base_freq);
 	channel.period = (int)channel.fperiod;
-	channel.fmaxperiod = 100.0 / (params.p_freq_limit*params.p_freq_limit + 0.001);
+	channel.fmaxperiod = 100.0 / (params.p_freq_limit + 0.001);
 	channel.fslide = 1.0 - pow((double)params.p_freq_ramp, 3.0)*0.01;
 	channel.fdslide = -pow((double)params.p_freq_dramp, 3.0)*0.000001;
 	channel.square_duty = 0.5f - params.p_duty*0.5f;
@@ -433,10 +433,10 @@ void SFXD_MutateChannel(int channelNum)
 void SFXD_MutateParams(SFXD_Params& params)
 {
 
-	if(rnd(1)) params.p_base_freq+=frnd(0.1f)-0.05f;
+	/* if(rnd(1)) params.p_base_freq+=frnd(0.1f)-0.05f; */
 //		if(rnd(1)) params.p_freq_limit+=frnd(0.1f)-0.05f;
-	if(rnd(1)) params.p_freq_ramp+=frnd(0.1f)-0.05f;
-	if(rnd(1)) params.p_freq_dramp+=frnd(0.1f)-0.05f;
+	/* if(rnd(1)) params.p_freq_ramp+=frnd(0.1f)-0.05f; */
+	/* if(rnd(1)) params.p_freq_dramp+=frnd(0.1f)-0.05f; */
 	if(rnd(1)) params.p_duty+=frnd(0.1f)-0.05f;
 	if(rnd(1)) params.p_duty_ramp+=frnd(0.1f)-0.05f;
 	if(rnd(1)) params.p_vib_strength+=frnd(0.1f)-0.05f;
