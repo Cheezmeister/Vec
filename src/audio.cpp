@@ -76,17 +76,25 @@ int gameParams[1] = {0};
 Scale ionian, dorian, phrygian, lydian, mixolydian, aeolian, locrian;
 Scale scales[7];
 
-Channel enemy = {0};
-Channel xp    = {0};
 Channel bass  = {0};
 Channel bell  = {0};
-Channel perc  = {0};
+Channel xylo  = {0};
+Channel clink = {0};
+Channel enemy = {0};
 Channel hat   = {0};
+Channel moog  = {0};
+Channel perc  = {0};
+Channel xp    = {0};
 
-Scale& currentMode = locrian;
+Scale& currentMode = dorian;
 
 float baseNote = 0.3;
 
+// bullets fired and consumed
+int fired = 0;
+int consumed = 0;
+
+// rolling channel ids
 int nextId = -1;
 
 // Forward
@@ -94,7 +102,7 @@ void init_channels();
 
 void init(u32 ticks)
 {
-    SFXD_Init(6);
+    SFXD_Init(9);
 
     make_mode(0, ionian);
     make_mode(1, dorian);
@@ -106,12 +114,16 @@ void init(u32 ticks)
 
     init_channels();
     bass.nextnote = ticks;
-    bell.nextnote = ticks + 60000.0 / (beats_per_minute() / 2);
-    perc.nextnote = ticks;
+    bell.nextnote = ticks;
     hat.nextnote = ticks;
+    perc.nextnote = ticks;
 
     update_params(enemy);
     update_params(xp);
+    update_params(clink);
+    update_params(xylo);
+    update_params(moog);
+
     update_params(bass);
     update_params(bell);
     update_params(perc);
@@ -143,10 +155,9 @@ void init_channels()
     bass.id = ++nextId;
     bass.pattern = 0x10000000;
     bass.params.wave_type = 0;
-    /* bass.params.p_base_freq = 1.0 / pow(2, 6); */
     bass.params.p_base_freq = baseNote * currentMode[TONIC] / pow(2, 6);
     bass.params.p_freq_ramp = 0.02f;
-    bass.params.p_env_attack = 0.3f;
+    bass.params.p_env_attack = 0.1f;
     bass.params.p_env_sustain = 0.2f;
     bass.params.p_env_decay = 1.0f;
     bass.params.filter_on = false;
@@ -155,17 +166,46 @@ void init_channels()
     bass.params.p_arp_mod = 0.05;
 
     bell.id = ++nextId;
-    bell.pattern = 0x10000000;
+    bell.pattern = 0x00001000;
     bell.params.wave_type = 2;
     bell.params.p_base_freq = baseNote * currentMode[DOMINANT] / pow(2, 2);
     bell.params.p_freq_ramp = 0.02f;
-    bell.params.p_env_attack = 0.2f;
-    bell.params.p_env_sustain = 0.5f;
-    bell.params.p_env_decay = 0.3f;
+    bell.params.p_env_attack = 0.0f;
+    bell.params.p_env_sustain = 0.0f;
+    bell.params.p_env_decay = 0.9f;
     bell.params.filter_on = false;
     bell.params.p_lpf_freq = 1.0f;
+    bell.params.p_lpf_ramp = -1.0f;
     bell.params.p_arp_speed = 0.28f;
     bell.params.p_arp_mod = 0.05;
+
+    clink.id = ++nextId;
+    clink.params.sound_vol = 0.1;
+    clink.params.wave_type = 1;
+    clink.params.p_base_freq = 0; // melodic
+    clink.params.p_freq_ramp = 0;
+    clink.params.p_env_attack = 0.0f;
+    clink.params.p_env_sustain = 0.0f;
+    clink.params.p_env_decay = 0.3f;
+    clink.params.filter_on = false;
+    clink.params.p_lpf_freq = 1.0f;
+    clink.params.p_lpf_ramp = -1.0f;
+    clink.params.p_arp_speed = 0.28f;
+    clink.params.p_arp_mod = 0.05;
+
+    xylo.id = ++nextId;
+    xylo.params.sound_vol = 0.1;
+    xylo.params.wave_type = 2;
+    xylo.params.p_base_freq = 0; // melodic
+    xylo.params.p_freq_ramp = 0;
+    xylo.params.p_env_attack = 0.1f;
+    xylo.params.p_env_sustain = 0.0f;
+    xylo.params.p_env_decay = 0.2f;
+    xylo.params.filter_on = false;
+    xylo.params.p_lpf_freq = 1.0f;
+    xylo.params.p_lpf_ramp = -1.0f;
+    xylo.params.p_arp_speed = 0.28f;
+    xylo.params.p_arp_mod = 0.05;
 
     perc.id = ++nextId;
     perc.pattern = 0x10101010;
@@ -202,8 +242,25 @@ void mutate_samples()
 
 void update(const GameState& state, u32 ticks)
 {
+    if (state.player.size < 1.0)
+    {
+        baseNote = 0.3 - 0.2 * state.player.size;
+    }
+
     for (int i = 0; i < state.next_event; ++i)
     {
+        if (state.events[i].type == Event::T_ENT_CREATED)
+        {
+            switch (state.events[i].entity)
+            {
+            case E_BULLET:
+            {
+                clink.params.p_base_freq = baseNote * currentMode[LEADING - ++fired % 7] * 2;
+                update_params(clink);
+                play_sample(clink);
+            } break;
+            }
+        }
         if (state.events[i].type == Event::T_ENT_DESTROYED)
         {
             switch (state.events[i].entity)
@@ -213,9 +270,9 @@ void update(const GameState& state, u32 ticks)
                 int m = gameParams[GP_DEAD_ENEMIES] % 7;
                 int p = gameParams[GP_DEAD_ENEMIES] / 7;
                 ++gameParams[GP_DEAD_ENEMIES];
-                enemy.params.p_base_freq = baseNote * currentMode[m] * pow(2, p);
-                xp.params.p_base_freq = baseNote * pow(2, p);
-                bass.params.p_base_freq = baseNote * currentMode[TONIC] / pow(2, 6 - p);
+
+                enemy.params.p_base_freq = baseNote * currentMode[m] * pow(2, p - 1);
+                bass.params.p_base_freq = baseNote * currentMode[TONIC] / pow(2, 5 - p);
                 bell.params.p_base_freq = baseNote * currentMode[DOMINANT] / pow(2, 2 + p);
 
                 update_params(enemy);
@@ -230,30 +287,38 @@ void update(const GameState& state, u32 ticks)
                 play_sample(xp);
             }
             break;
+            case E_BULLET:
+            {
+                xylo.params.p_base_freq = baseNote * currentMode[LEADING - ++consumed % 7];
+                update_params(xylo);
+                play_sample(xylo);
+            }
+            break;
             }
         }
     }
 
 
+    float bpm = beats_per_minute(state);
     if (ticks > hat.nextnote)
     {
-        hat.nextnote += 60000.0 / (beats_per_minute() * 4);
+        hat.nextnote += 60000.0 / (bpm * 4);
         play_sample(hat);
     }
     if (ticks > perc.nextnote)
     {
-        perc.nextnote += 60000.0 / (beats_per_minute());
+        perc.nextnote += 60000.0 / (bpm);
         play_sample(perc);
     }
     if (ticks > bass.nextnote)
     {
-        bass.nextnote += 60000.0 / (beats_per_minute() / 4);
+        bass.nextnote += 60000.0 / (bpm / 4);
         play_sample(bass);
     }
     if (ticks > bell.nextnote)
     {
-        bell.nextnote += 60000.0 / (beats_per_minute() / 4);
-        if (bml::normrand() > 0.5) play_sample(bell);
+        bell.nextnote += 60000.0 / (bpm * 6 / 4);
+        if (rand() % 7 < state.player.killcount) play_sample(bell);
     }
 }
 }

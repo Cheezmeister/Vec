@@ -47,10 +47,9 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
     float sidethrust = params.movespeed * input.axes.x1;
     if (thrust == 0 && sidethrust == 0) // If dual-mouse, move differently
     {
-        // TODO pid control
         thrust = params.movespeed * params.mousemovespeed * input.axes.y3;
         sidethrust = params.movespeed * params.mousemovespeed * input.axes.x3;
-
+        /* DEBUGVAR(input.axes.x3); */
     }
 
     // Shooting
@@ -111,6 +110,8 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
     for (int i = 0; i < MAX_ENTITIES; ++i)
     {
         Entity& e = state.entities[i];
+        if (e.life <= 0) continue;
+
         switch (e.type)
         {
         // Bullets/Rockets
@@ -118,6 +119,8 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
         case E_ROCKET:
             e.life -= 0.01;
             e.pos += e.vel * params.bulletspeed;
+            if (e.pos.x > 1 || e.pos.x < -1 || e.pos.y > 1 || e.pos.y < -1)
+              destroy_entity(state, e);
             continue;
 
         // Turds & Novae
@@ -164,25 +167,50 @@ bool check_collision(Entity& a, Entity& b)
     return false;
 }
 
+void record_event(GameState& state, Event& evt)
+{
+    int i = state.next_event++;
+    if (i >= MAX_EVENTS) return; // TODO
+
+    state.events[i] = evt;
+}
+
 void add_entity(GameState& state, Entity& e)
 {
     // find next fungible (not-enemy) ent
     do ++state.next %= MAX_ENTITIES;
     while (state.entities[state.next].type == E_ENEMY);
     state.entities[state.next] = e;
+
+    // Propogate event for gfx/audio
+    Event evt;
+    evt.type = Event::T_ENT_CREATED;
+    evt.entity = e.type;
+    record_event(state, evt);
+
 }
 
 void destroy_entity(GameState& state, Entity& e)
 {
+    if (e.life == 0) bml::warn("Killing dead ent\n");
+
     e.life = 0;
 
     // Propogate event for gfx/audio
-    Event& evt = state.events[state.next_event++];
+    Event evt;
     evt.type = Event::T_ENT_DESTROYED;
     evt.entity = e.type;
+    record_event(state, evt);
 
     if (e.type == E_ENEMY)
     {
+        ++state.player.killcount;
+        if (state.ticks - state.player.lastkill < beats_per_minute(state))
+            ++state.player.combo;
+        else 
+            state.player.combo = 1;
+        state.player.lastkill = state.ticks;
+
         for (int i = 0; i < 4; ++i)
         {
             Entity xp = {0};
@@ -194,6 +222,15 @@ void destroy_entity(GameState& state, Entity& e)
             xp.hue = e.hue;
             add_entity(state, xp);
         }
+    }
+}
+
+void hurt_entity(GameState& state, Entity& e, float damage)
+{
+    e.life -= damage;
+    if (e.life <= 0)
+    {
+        destroy_entity(state, e);
     }
 }
 
@@ -212,23 +249,30 @@ void collide(GameState& state)
 #define THEN_THE(type1) (a.type == type1 ? a : b)
                 WHEN_COLLIDE(E_TURD, E_ENEMY)
                 {
-                    THEN_THE(E_TURD).life = 0;
-                    Entity& enemy = THEN_THE(E_ENEMY);
-                    enemy.life -= 0.1;
-                    if (enemy.life <= 0)
-                    {
-                        destroy_entity(state, enemy);
-                    }
+                    destroy_entity(state, THEN_THE(E_TURD));
+                    hurt_entity(state, THEN_THE(E_ENEMY), 0.1);
+                    Event evt;
+                    evt.type = Event::T_ENT_HIT;
+                    evt.entity = E_ENEMY;
+                    record_event(state, evt);
                 }
                 WHEN_COLLIDE(E_BULLET, E_ENEMY)
                 {
-                    THEN_THE(E_BULLET).life = 0;
-                    Entity& enemy = THEN_THE(E_ENEMY);
-                    enemy.life -= 0.1;
-                    if (enemy.life <= 0)
-                    {
-                        destroy_entity(state, enemy);
-                    }
+                    destroy_entity(state, THEN_THE(E_BULLET));
+                    hurt_entity(state, THEN_THE(E_ENEMY), 0.1);
+                    Event evt;
+                    evt.type = Event::T_ENT_HIT;
+                    evt.entity = E_ENEMY;
+                    record_event(state, evt);
+                }
+                WHEN_COLLIDE(E_ROCKET, E_ENEMY)
+                {
+                    destroy_entity(state, THEN_THE(E_ROCKET));
+                    hurt_entity(state, THEN_THE(E_ENEMY), 2.0);
+                    Event evt;
+                    evt.type = Event::T_ENT_HIT;
+                    evt.entity = E_ENEMY;
+                    record_event(state, evt);
                 }
 #undef WHEN_COLLIDE
 #undef THEN_THE

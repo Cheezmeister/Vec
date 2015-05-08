@@ -30,6 +30,8 @@ typedef struct _Entity {
 typedef struct _Event {
     enum Type {
         T_ENT_DESTROYED,
+        T_ENT_CREATED,
+        T_ENT_HIT,
         T_LAST
     } type;
 
@@ -38,12 +40,17 @@ typedef struct _Event {
 
 typedef struct _GameState {
 
+    u32 ticks; // Millis since start
+
+    // Enemies, bullets, and stuff
     Entity entities[MAX_ENTITIES];
     int next;
 
+    // Events that happened this frame
     Event events[MAX_EVENTS];
     int next_event;
 
+    // Player
     struct _Player {
         bml::Vec pos;
         bml::Vec vel;
@@ -51,7 +58,9 @@ typedef struct _GameState {
         float rotation; // radians
         float phase; // norm
         bml::Vec reticle;
+        int killcount;
         u32 lastkill;
+        int combo;
     } player;
 
     bool over; // game over?
@@ -79,9 +88,9 @@ typedef struct _Input {
 
 } Input;
 
-static float beats_per_minute()
+static float beats_per_minute(const GameState& state)
 {
-    return 120;
+    return 120 + 2 * state.player.killcount * bml::minimum(state.player.size, 1);
 }
 
 namespace gfx

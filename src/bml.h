@@ -51,6 +51,11 @@ static Vec operator *(const Vec& lhs, float rhs)
     return ret;
 }
 
+static void warn(const char* message)
+{
+    logger << "WARNING: " << message << std::endl;
+}
+
 // random float between -1 and 1
 static float normrand()
 {

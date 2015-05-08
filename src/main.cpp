@@ -164,6 +164,10 @@ Input handle_input()
                           (mme.device == leftmouse ? ret.axes.x3 : state.axes.x2) :
                           (mme.device == leftmouse ? ret.axes.y3 : state.axes.y2);
             float value = mme.value / (float)bml::maximum(viewport.x, viewport.y);
+            /* if (axis == ret.axes.x3) */
+            /* { */
+            /*   DEBUGVAR(axis); */
+            /* } */
             if (yaxis) value = -value;
             axis += value;
         }
@@ -242,7 +246,7 @@ void loop()
     while (!state.over)
     {
         // Timing
-        u32 ticks = SDL_GetTicks();
+        u32 ticks = state.ticks = SDL_GetTicks();
         u32 before = ticks;
         u32 after;
 
