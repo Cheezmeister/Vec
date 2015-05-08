@@ -293,7 +293,7 @@ void collide(GameState& state)
             // Collect bullets to grow (TODO this is a stupid mechanic)
             if (e.type == E_XPCHUNK)
             {
-                state.player.size *= 1.1;
+                state.player.size *= 1.05;
                 destroy_entity(state, e);
             }
 
