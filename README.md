@@ -3,6 +3,8 @@ Vec
 
 It's short for vector. 
 
+![Screenshot](https://pbs.twimg.com/media/CCoGtf9WEAAMsrv.png:large)
+
 Vec is a procedural, dual-axis, polar-coordinate arcade thing I've been working on since GDC 2015. It's more of a toy than a game.
 
 Downloads

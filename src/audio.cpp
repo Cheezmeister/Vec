@@ -193,6 +193,18 @@ void init_channels()
     clink.params.p_arp_speed = 0.28f;
     clink.params.p_arp_mod = 0.05;
 
+    moog.id = ++nextId;
+    moog.params.sound_vol = 0.1;
+    moog.params.wave_type = 1;
+    moog.params.p_base_freq = 0; // melodic
+    moog.params.p_freq_ramp = 0;
+    moog.params.p_env_attack = 0.0f;
+    moog.params.p_env_sustain = 0.0f;
+    moog.params.p_env_decay = 0.3f;
+    moog.params.filter_on = true;
+    moog.params.p_lpf_freq = 1.0f;
+    moog.params.p_lpf_ramp = -1.0f;
+
     xylo.id = ++nextId;
     xylo.params.sound_vol = 0.1;
     xylo.params.wave_type = 2;
@@ -258,7 +270,8 @@ void update(const GameState& state, u32 ticks)
                 clink.params.p_base_freq = baseNote * currentMode[LEADING - ++fired % 7] * 2;
                 update_params(clink);
                 play_sample(clink);
-            } break;
+            }
+            break;
             }
         }
         if (state.events[i].type == Event::T_ENT_DESTROYED)
@@ -313,7 +326,7 @@ void update(const GameState& state, u32 ticks)
     if (ticks > bass.nextnote)
     {
         bass.nextnote += 60000.0 / (bpm / 4);
-        play_sample(bass);
+        play_sample(moog);
     }
     if (ticks > bell.nextnote)
     {

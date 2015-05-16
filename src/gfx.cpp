@@ -264,119 +264,21 @@ GLuint make_shader(GLuint vertex, GLuint fragment)
 
 void init()
 {
-#define INCLUDE_COMMON_GLSL \
-    "float ncos(float a) {" \
-    "  return 0.5 + cos(a)/2;" \
-    "}" \
-    "float nsin(float a) {" \
-    "  return 0.5 + sin(a)/2;" \
-    "}" \
-    "/* Via http://stackoverflow.com/a/17897228 */ " \
-    "vec3 hsv2rgb(vec3 c)" \
-    "{" \
-    "    vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);" \
-    "    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);" \
-    "    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);" \
-    "}" \
- 
     // Compile shaders
-    GLuint vs_pulse = arcsynthesis::CreateShader(GL_VERTEX_SHADER,
-                      "#version 120  \n"
-                      "attribute vec4 inPos; "
-                      "uniform vec2 offset; "
-                      "uniform float rotation; "
-                      "uniform float ticks; "
-                      "uniform float scale = 1;"
-                      "varying vec4 glPos; "
-                      "const float frequency = 2;"
-                      "const float mPI = 3.14159;"
-                      INCLUDE_COMMON_GLSL
-                      "void main() { "
-                      "  vec2 rotated;"
-                      "  rotated.x = inPos.x * cos(rotation) - inPos.y * sin(rotation);"
-                      "  rotated.y = inPos.x * sin(rotation) + inPos.y * cos(rotation);"
-                      "  float phase = ticks * frequency / 1000.0;"
-                      "  vec2 pos = rotated * (0.2 + 0.02 * sin(phase * mPI));"
-                      "  pos *= scale;"
-                      "  gl_Position = glPos = vec4(offset + pos, 0, 1); "
-                      "} "
+    GLuint vs_pulse = arcsynthesis::CreateShader(GL_VERTEX_SHADER, "#version 120\n"
+#include "pulse.vs"
                                                 );
-
-    GLuint vs_wiggle = arcsynthesis::CreateShader(GL_VERTEX_SHADER,
-                       "#version 120  \n"
-                       "attribute vec4 inPos; "
-                       "uniform vec2 offset; "
-                       "uniform float rotation; "
-                       "uniform float ticks; "
-                       "uniform float scale = 1;"
-                       "varying vec4 glPos; "
-                       "const float frequency = 2;"
-                       "const float mPI = 3.14159;"
-                       "void main() { "
-                       "  vec2 rotated;"
-                       "  rotated.x = inPos.x * cos(rotation) - inPos.y * sin(rotation);"
-                       "  rotated.y = inPos.x * sin(rotation) + inPos.y * cos(rotation);"
-                       "  float phase = ticks * frequency / 1000.0;"
-                       "  vec2 pos = rotated * (0.2 + 0.02 * sin(phase * mPI));"
-                       "  pos *= scale;"
-                       "  pos.x += 0.02 * (inPos.x - inPos.y) * cos(phase * mPI);"
-                       "  pos.y += 0.02 * (inPos.x - inPos.y) * sin(phase * mPI);"
-                       "  gl_Position = glPos = vec4(offset + pos, 0, 1); "
-                       "} "
+    GLuint vs_wiggle = arcsynthesis::CreateShader(GL_VERTEX_SHADER, "#version 120  \n"
+#include "wiggle.vs"
                                                  );
-
-    GLuint fs_scintillate = arcsynthesis::CreateShader(GL_FRAGMENT_SHADER,
-                            "#version 120 \n"
-                            "varying vec4 glPos; "
-                            "uniform float phase; "
-                            "uniform float value = 1.0; "
-                            "const float mPI = 3.14159;"
-                            INCLUDE_COMMON_GLSL
-                            "void main() { "
-                            "  float h = nsin(phase * mPI); "
-                            "  float s = 1.0; "
-                            "  float v = value; "
-                            "  vec3 rgb = hsv2rgb(vec3(h, s, v)); "
-                            "  gl_FragColor = vec4(rgb, 0); "
-                            "} "
+    GLuint fs_scintillate = arcsynthesis::CreateShader(GL_FRAGMENT_SHADER, "#version 120 \n"
+#include "scintillate.fs"
                                                       );
-
-    GLuint fs_pulse = arcsynthesis::CreateShader(GL_FRAGMENT_SHADER,
-                      "#version 120 \n"
-                      "varying vec4 glPos; "
-                      "uniform float ticks; "
-                      "uniform float a = 1.0;"
-                      "uniform float hue = 0.5; "
-                      "const float mPI = 3.14159;"
-                      INCLUDE_COMMON_GLSL
-                      "void main() { "
-                      "  float phase = ticks * 1 / 1000.0;"
-                      "  float h = hue; "
-                      "  float s = 1.0; "
-                      "  float v = 0.2 + 0.8 * nsin(phase * mPI); "
-                      "  vec3 rgb = hsv2rgb(vec3(h, s, v)); "
-                      "  gl_FragColor = vec4(rgb, a); "
-                      "} "
+    GLuint fs_pulse = arcsynthesis::CreateShader(GL_FRAGMENT_SHADER, "#version 120 \n"
+#include "pulse.fs"
                                                 );
-
-    GLuint fs_circle = arcsynthesis::CreateShader(GL_FRAGMENT_SHADER,
-                       "#version 120 \n"
-                       "varying vec4 glPos; "
-                       "uniform float phase; "
-                       "uniform float value = 1.0; "
-                       "uniform vec2 center; "
-                       "uniform float radius; "
-                       "uniform float thickness = 0.1; "
-                       "const float mPI = 3.14159;"
-                       INCLUDE_COMMON_GLSL
-                       "void main() { "
-                       "  float h = nsin(phase * mPI); "
-                       "  float v = value; "
-                       "  float len = length(vec2(glPos) - center); "
-                       "  float s = thickness - min(thickness, abs(len - radius)); "
-                       "  vec3 rgb = hsv2rgb(vec3(h, s, v)); "
-                       "  gl_FragColor = vec4(rgb, 0); "
-                       "} "
+    GLuint fs_circle = arcsynthesis::CreateShader(GL_FRAGMENT_SHADER, "#version 120 \n"
+#include "circle.fs"
                                                  );
 
     // Set up VBO

@@ -120,7 +120,7 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
             e.life -= 0.01;
             e.pos += e.vel * params.bulletspeed;
             if (e.pos.x > 1 || e.pos.x < -1 || e.pos.y > 1 || e.pos.y < -1)
-              destroy_entity(state, e);
+                destroy_entity(state, e);
             continue;
 
         // Turds & Novae
@@ -207,7 +207,7 @@ void destroy_entity(GameState& state, Entity& e)
         ++state.player.killcount;
         if (state.ticks - state.player.lastkill < beats_per_minute(state))
             ++state.player.combo;
-        else 
+        else
             state.player.combo = 1;
         state.player.lastkill = state.ticks;
 
