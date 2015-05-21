@@ -14,11 +14,6 @@ namespace audio {
 
 /// Types
 
-typedef enum _GameParams {
-    GP_DEAD_ENEMIES,
-    GP_LAST
-} GameParams;
-
 typedef struct Channel {
     int id; // SFXD channel num
     SFXD_Params params;
@@ -73,7 +68,6 @@ void update_params(Channel& channel)
 }
 
 // Data
-int gameParams[1] = {0};
 
 float baseNote = 0.3;
 
@@ -145,7 +139,6 @@ void init_channels()
     enemy.params.p_env_attack = 0.1f;
     enemy.params.p_env_sustain = 0.2f;
     enemy.params.p_env_decay = 0.7f;
-    enemy.params.filter_on = false;
     enemy.params.p_lpf_freq = 1.0f;
 
     xp.id = ++nextId;
@@ -156,7 +149,6 @@ void init_channels()
     xp.params.p_env_attack = 0.3f;
     xp.params.p_env_sustain = 0.2f;
     xp.params.p_env_decay = 0.3f;
-    xp.params.filter_on = false;
     xp.params.p_lpf_freq = 1.0f;
 
     bass.id = ++nextId;
@@ -168,7 +160,6 @@ void init_channels()
     bass.params.p_env_attack = 0.1f;
     bass.params.p_env_sustain = 0.2f;
     bass.params.p_env_decay = 1.0f;
-    bass.params.filter_on = false;
     bass.params.p_lpf_freq = 1.0f;
     bass.params.p_arp_speed = 0.28f;
     bass.params.p_arp_mod = 0.05;
@@ -182,7 +173,6 @@ void init_channels()
     bell.params.p_env_attack = 0.0f;
     bell.params.p_env_sustain = 0.0f;
     bell.params.p_env_decay = 0.9f;
-    bell.params.filter_on = false;
     bell.params.p_lpf_freq = 1.0f;
     bell.params.p_lpf_ramp = -1.0f;
     bell.params.p_arp_speed = 0.28f;
@@ -220,7 +210,6 @@ void init_channels()
     xylo.params.p_env_attack = 0.1f;
     xylo.params.p_env_sustain = 0.0f;
     xylo.params.p_env_decay = 0.2f;
-    xylo.params.filter_on = false;
     xylo.params.p_lpf_freq = 1.0f;
     xylo.params.p_lpf_ramp = -1.0f;
     xylo.params.p_arp_speed = 0.28f;
@@ -234,7 +223,6 @@ void init_channels()
     perc.params.p_env_punch = 0.8f;
     perc.params.p_env_sustain = 0.0f;
     perc.params.p_env_decay = 0.25f;
-    perc.params.filter_on = false;
     perc.params.p_lpf_freq = 1.0f;
     perc.params.p_arp_speed = 0.28f;
     perc.params.p_arp_mod = 0.05;
@@ -247,7 +235,6 @@ void init_channels()
     hat.params.p_env_punch = 0.0f;
     hat.params.p_env_sustain = 0.05f;
     hat.params.p_env_decay = 0.15f;
-    hat.params.filter_on = false;
     hat.params.p_lpf_freq = 1.0f;
     hat.params.p_arp_speed = 0.28f;
     hat.params.p_arp_mod = 0.05;
@@ -298,9 +285,8 @@ void update(const GameState& state, u32 ticks)
             {
             case E_ENEMY:
             {
-                int m = gameParams[GP_DEAD_ENEMIES] % 7;
-                int p = gameParams[GP_DEAD_ENEMIES] / 7;
-                ++gameParams[GP_DEAD_ENEMIES];
+                int m = state.player.killcount % 7;
+                int p = state.player.killcount / 7;
 
                 enemy.octave = p;
                 bass.octave = p - 5;

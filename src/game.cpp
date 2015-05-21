@@ -13,6 +13,7 @@ struct _GameParams {
 void collide(GameState& state);
 void add_entity(GameState& state, Entity& e);
 void destroy_entity(GameState& state, Entity& e);
+void spawn_enemies(GameState& state);
 
 float mag_squared(const bml::Vec& vec)
 {
@@ -22,18 +23,7 @@ float mag_squared(const bml::Vec& vec)
 void init(GameState& state)
 {
     state.player.size = 1;
-    for (int i = 0; i < MAX_ENEMIES; ++i)
-    {
-        Entity e = {0};
-        e.type = E_ENEMY;
-        e.pos.x = (rand() % MAX_ENEMIES) / (float)MAX_ENEMIES;
-        e.pos.y = (rand() % MAX_ENEMIES) / (float)MAX_ENEMIES;
-        e.vel.x = (rand() % MAX_ENEMIES) / (float)MAX_ENEMIES;
-        e.vel.y = (rand() % MAX_ENEMIES) / (float)MAX_ENEMIES;
-        e.life = 3;
-        e.hue = (rand() % 360) / 360.0;
-        add_entity(state, e);
-    }
+    spawn_enemies(state);
 }
 
 void update(GameState& state, u32 ticks, bool debug, const Input& input)
@@ -49,7 +39,6 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
     {
         thrust = params.movespeed * params.mousemovespeed * input.axes.y3;
         sidethrust = params.movespeed * params.mousemovespeed * input.axes.x3;
-        /* DEBUGVAR(input.axes.x3); */
     }
 
     // Shooting
@@ -153,6 +142,22 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
         state.over = true;
 
 }
+void spawn_enemies(GameState& state)
+{
+    for (int i = 0; i < MAX_ENEMIES; ++i)
+    {
+        Entity e = {0};
+        e.type = E_ENEMY;
+        float mag = bml::normrand() / 4.0 + 0.75;
+        float angle = bml::normrand() * M_PI * 2;
+        e.pos.x = mag * cos(angle);
+        e.pos.y = mag * sin(angle);
+        e.vel = e.pos * 0.5;
+        e.life = 1.0;
+        e.hue = (rand() % 360) / 360.0;
+        add_entity(state, e);
+    }
+}
 
 bool check_collision(Entity& a, Entity& b)
 {
@@ -205,6 +210,12 @@ void destroy_entity(GameState& state, Entity& e)
     if (e.type == E_ENEMY)
     {
         ++state.player.killcount;
+        if (state.player.killcount >= MAX_ENEMIES) // TODO actually count ents
+        {
+            state.player.killcount = 0;
+            state.player.size = 1;
+            spawn_enemies(state);
+        }
         if (state.ticks - state.player.lastkill < beats_per_minute(state))
             ++state.player.combo;
         else
@@ -240,8 +251,8 @@ void collide(GameState& state)
     for (int i =   0; i < MAX_ENTITIES; ++i)
         for (int j = i+1; j < MAX_ENTITIES; ++j)
         {
-            Entity& a = state.entities[i],
-                    b = state.entities[j];
+            Entity& a = state.entities[i];
+            Entity& b = state.entities[j];
             if (check_collision(a, b))
             {
 // XXX Lord this is hackish. Hao fix?
@@ -250,7 +261,7 @@ void collide(GameState& state)
                 WHEN_COLLIDE(E_TURD, E_ENEMY)
                 {
                     destroy_entity(state, THEN_THE(E_TURD));
-                    hurt_entity(state, THEN_THE(E_ENEMY), 0.1);
+                    hurt_entity(state, THEN_THE(E_ENEMY), 0.02);
                     Event evt;
                     evt.type = Event::T_ENT_HIT;
                     evt.entity = E_ENEMY;
@@ -259,7 +270,7 @@ void collide(GameState& state)
                 WHEN_COLLIDE(E_BULLET, E_ENEMY)
                 {
                     destroy_entity(state, THEN_THE(E_BULLET));
-                    hurt_entity(state, THEN_THE(E_ENEMY), 0.1);
+                    hurt_entity(state, THEN_THE(E_ENEMY), 0.02);
                     Event evt;
                     evt.type = Event::T_ENT_HIT;
                     evt.entity = E_ENEMY;
@@ -268,7 +279,7 @@ void collide(GameState& state)
                 WHEN_COLLIDE(E_ROCKET, E_ENEMY)
                 {
                     destroy_entity(state, THEN_THE(E_ROCKET));
-                    hurt_entity(state, THEN_THE(E_ENEMY), 2.0);
+                    hurt_entity(state, THEN_THE(E_ENEMY), 0.5);
                     Event evt;
                     evt.type = Event::T_ENT_HIT;
                     evt.entity = E_ENEMY;
