@@ -67,6 +67,14 @@ struct SFXD_Params
     float sound_vol;
 };
 
+enum {
+  WAVE_SQUARE,
+  WAVE_SAWTOOTH,
+  WAVE_SINE,
+  WAVE_NOISE,
+  WAVE_LAST,
+};
+
 void SFXD_Init(int numChannels = 1);
 void SFXD_MutateParams(SFXD_Params& params); 
 void SFXD_MutateChannel(int channel = 0);

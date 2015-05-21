@@ -297,7 +297,7 @@ void ResetSample(SFXD_Sample& channel, bool restart)
 
 	if (!restart)
 		channel.phase = 0;
-	channel.fperiod = 100.0 / (params.p_base_freq);
+	channel.fperiod = 100.0 / (params.p_base_freq); // FIXME wtf units is this in
 	channel.period = (int)channel.fperiod;
 	channel.fmaxperiod = 100.0 / (params.p_freq_limit + 0.001);
 	channel.fslide = 1.0 - pow((double)params.p_freq_ramp, 3.0)*0.01;
@@ -358,8 +358,8 @@ void ResetSample(SFXD_Sample& channel, bool restart)
 void SFXD_PlaySample(int channelNum)
 {
     SFXD_Sample& sample = channels[channelNum];
-	ResetSample(sample, false);
-	sample.playing_sample=true;
+    ResetSample(sample, false);
+    sample.playing_sample=true;
 }
 
 

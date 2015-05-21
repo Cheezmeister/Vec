@@ -90,7 +90,7 @@ typedef struct _Input {
 
 static float beats_per_minute(const GameState& state)
 {
-    return 120 + 2 * state.player.killcount * bml::minimum(state.player.size, 1);
+    return 120 - 2 * state.player.killcount * bml::minimum(state.player.size, 1);
 }
 
 namespace gfx
