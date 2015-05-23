@@ -10,7 +10,7 @@
 #define M_PI 3.1415926536
 #endif
 
-#define DEBUGVAR(x) bml::logger << #x " is " << x << endl;
+#define DEBUGVAR(x) bml::logger << #x " is " << x << std::endl;
 const char ESCAPE = '\e';
 
 typedef uint32_t u32;
@@ -59,7 +59,7 @@ static void warn(const char* message)
 // random float between -1 and 1
 static float normrand()
 {
-    return (float)(rand() % INT_MAX) * 2 / (float)INT_MAX - 1.0;
+    return (float)(rand() % 32767) * 2.0 / (float)32767 - 1.0;
 }
 
 static int maximum(int a, int b)

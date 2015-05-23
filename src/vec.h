@@ -40,7 +40,8 @@ typedef struct _Event {
 
 typedef struct _GameState {
 
-    u32 ticks; // Millis since start
+	u32 ticks; // Millis since start
+	u32 dticks; // Millis since last frame
 
     // Enemies, bullets, and stuff
     Entity entities[MAX_ENTITIES];
@@ -58,6 +59,7 @@ typedef struct _GameState {
         float rotation; // radians
         float phase; // norm
         bml::Vec reticle;
+		float cooldown;
         int killcount;
         u32 lastkill;
         int combo;

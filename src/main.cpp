@@ -246,7 +246,9 @@ void loop()
     while (!state.over)
     {
         // Timing
-        u32 ticks = state.ticks = SDL_GetTicks();
+        u32 ticks = SDL_GetTicks();
+		state.dticks = ticks - state.ticks;
+		state.ticks = ticks;
         u32 before = ticks;
         u32 after;
 

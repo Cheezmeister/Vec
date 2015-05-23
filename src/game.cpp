@@ -42,7 +42,8 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
     }
 
     // Shooting
-    if (input.shoot)
+	state.player.cooldown -= (float)state.dticks;
+	if (input.shoot && state.player.cooldown <= 0)
     {
         Entity b = {0};
         b.life = 1.0;
@@ -50,7 +51,8 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
         b.vel = state.player.reticle - state.player.pos;
         b.pos = state.player.pos;
         add_entity(state, b);
-    }
+		state.player.cooldown = 60000.0 / (4 * beats_per_minute(state));
+	}
     if (input.auxshoot)
     {
         Entity b = {0};
