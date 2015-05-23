@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 2.6)
 #definitions
 set(PROJECT_NAME "Vec")
 set(APP_NAME vec)
-set(PROJECT_VERSION 1 0 4)
+set(PROJECT_VERSION 1 0 5)
 set(DESCRIPTION "Dual-mouse arcade thing")
 set(README README.md)
 set(LICENSE ${README})
