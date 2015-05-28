@@ -58,6 +58,7 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
         b.type = E_ROCKET;
         b.vel = state.player.reticle - state.player.pos;
         b.pos = state.player.pos;
+        b.rotation = state.player.rotation;
         add_entity(state, b);
     }
 
