@@ -247,8 +247,8 @@ void loop()
     {
         // Timing
         u32 ticks = SDL_GetTicks();
-		state.dticks = ticks - state.ticks;
-		state.ticks = ticks;
+        state.dticks = ticks - state.ticks;
+        state.ticks = ticks;
         u32 before = ticks;
         u32 after;
 
