@@ -20,6 +20,16 @@ float mag_squared(const bml::Vec& vec)
     return vec.x * vec.x + vec.y * vec.y;
 }
 
+int entity_count(const GameState& state)
+{
+    int ents = 0;
+    for (int i = 0; i < MAX_ENTITIES; ++i)
+        if (state.entities[i].life > 0)
+            ++ents;
+    // TODO xpchunk +get life
+    return ents;
+}
+
 void init(GameState& state)
 {
     state.player.size = 1;
@@ -145,6 +155,8 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
         state.over = true;
 
 }
+
+// (Re)spawn enemies
 void spawn_enemies(GameState& state)
 {
     for (int i = 0; i < MAX_ENEMIES; ++i)
@@ -213,12 +225,6 @@ void destroy_entity(GameState& state, Entity& e)
     if (e.type == E_ENEMY)
     {
         ++state.player.killcount;
-        if (state.player.killcount >= MAX_ENEMIES) // TODO actually count ents
-        {
-            state.player.killcount = 0;
-            state.player.size = 1;
-            spawn_enemies(state);
-        }
         if (state.ticks - state.player.lastkill < beats_per_minute(state))
             ++state.player.combo;
         else
@@ -235,6 +241,15 @@ void destroy_entity(GameState& state, Entity& e)
             xp.life = 1;
             xp.hue = e.hue;
             add_entity(state, xp);
+        }
+    }
+    else if (e.type == E_XPCHUNK)
+    {
+        if (entity_count(state) == 0)
+        {
+            state.player.killcount = 0;
+            state.player.size = 1;
+            spawn_enemies(state);
         }
     }
 }
