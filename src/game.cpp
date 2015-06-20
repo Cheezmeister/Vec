@@ -279,7 +279,7 @@ void collide(GameState& state)
                 WHEN_COLLIDE(E_TURD, E_ENEMY)
                 {
                     destroy_entity(state, THEN_THE(E_TURD));
-                    hurt_entity(state, THEN_THE(E_ENEMY), 0.02);
+                    hurt_entity(state, THEN_THE(E_ENEMY), 0.1);
                     Event evt;
                     evt.type = Event::T_ENT_HIT;
                     evt.entity = E_ENEMY;
@@ -288,7 +288,7 @@ void collide(GameState& state)
                 WHEN_COLLIDE(E_BULLET, E_ENEMY)
                 {
                     destroy_entity(state, THEN_THE(E_BULLET));
-                    hurt_entity(state, THEN_THE(E_ENEMY), 0.02);
+                    hurt_entity(state, THEN_THE(E_ENEMY), 0.1);
                     Event evt;
                     evt.type = Event::T_ENT_HIT;
                     evt.entity = E_ENEMY;
