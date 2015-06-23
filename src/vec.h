@@ -65,6 +65,11 @@ typedef struct _GameState {
         int combo;
     } player;
 
+    struct _Square {
+        bml::Vec pos;
+        float size;
+    } square;
+
     bool over; // game over?
 } GameState;
 
@@ -73,12 +78,8 @@ typedef struct _Input {
 
     // Normalized (-1.0 <-> 1.0) axes
     struct _Axes {
-        float x1;
-        float x2;
-        float x3;
-        float y1;
-        float y2;
-        float y3;
+        float x1, x2, x3, x4;
+        float y1, y2, y3, y4;
     } axes;
 
     bool pause;

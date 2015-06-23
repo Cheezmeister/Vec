@@ -11,6 +11,8 @@ using namespace std;
 
 typedef struct _Args {
     bool debug;
+    bool fullscreen;
+    bool windowed;
 } Args;
 
 typedef struct _Dimension2 {
@@ -39,6 +41,10 @@ int parse_args(int argc, char** argv, Args* outArgs)
         {
             if (arg[1] == 'd')
                 outArgs->debug = true;
+            if (arg[1] == 'f')
+                outArgs->fullscreen = true;
+            if (arg[1] == 'w')
+                outArgs->windowed = true;
         }
     }
 
@@ -164,10 +170,6 @@ Input handle_input()
                           (mme.device == leftmouse ? ret.axes.x3 : state.axes.x2) :
                           (mme.device == leftmouse ? ret.axes.y3 : state.axes.y2);
             float value = mme.value / (float)bml::maximum(viewport.x, viewport.y);
-            /* if (axis == ret.axes.x3) */
-            /* { */
-            /*   DEBUGVAR(axis); */
-            /* } */
             if (yaxis) value = -value;
             axis += value;
         }
@@ -203,6 +205,10 @@ Input handle_input()
     ret.axes.y1 -= 1.0 * (keystate[SDL_SCANCODE_S]);
     ret.axes.x1 += 1.0 * (keystate[SDL_SCANCODE_D]);
     ret.axes.x1 -= 1.0 * (keystate[SDL_SCANCODE_A]);
+    ret.axes.y4 += 1.0 * (keystate[SDL_SCANCODE_UP]);
+    ret.axes.y4 -= 1.0 * (keystate[SDL_SCANCODE_DOWN]);
+    ret.axes.x4 += 1.0 * (keystate[SDL_SCANCODE_RIGHT]);
+    ret.axes.x4 -= 1.0 * (keystate[SDL_SCANCODE_LEFT]);
     ret.shoot |= (0 != keystate[SDL_SCANCODE_E]);
     ret.poop |= (0 != keystate[SDL_SCANCODE_Q]);
 
@@ -309,12 +315,31 @@ int main(int argc, char** argv)
     viewport.x = 400;
     viewport.y = 400;
     Uint32 flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
+#ifdef DEBUG
+    if (args.fullscreen)
+#else
+    if (!args.windowed)
+#endif
+    {
+        SDL_DisplayMode dm;
+        if (SDL_GetDesktopDisplayMode(0, &dm) != 0)
+        {
+            fprintf(stderr, "SDL_GetDesktopDisplayMode failed: %s", SDL_GetError());
+        }
+        else
+        {
+            viewport.x = dm.w;
+            viewport.y = dm.h;
+            flags |= SDL_WINDOW_FULLSCREEN;
+        }
+    }
     win = SDL_CreateWindow("Vec", 0, 0, viewport.x, viewport.y, flags);
     if (win == NULL)
     {
         cerr << "Couldn't set video mode";
         return 2;
     }
+
     SDL_SetWindowPosition(win, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
     SDL_SetRelativeMouseMode(SDL_TRUE);
 

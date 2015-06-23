@@ -10,6 +10,8 @@
 #define M_PI 3.1415926536
 #endif
 
+const float π = M_PI;
+
 #define DEBUGVAR(x) bml::logger << #x " is " << x << std::endl;
 const char ESCAPE = '\e';
 

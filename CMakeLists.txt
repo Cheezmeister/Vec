@@ -9,7 +9,13 @@ set(DESCRIPTION "Dual-mouse arcade thing")
 set(README README.md)
 set(LICENSE ${README})
 set(AUTHORS "Brendan Luchen")
-set(CMAKE_BUILD_TYPE Debug)
+set(DEBUG true)
+
+if(DEBUG)
+  set(CMAKE_BUILD_TYPE Debug)
+else()
+  set(CMAKE_BUILD_TYPE Release)
+endif()
 
 #extract the proper versioning breakdown
 list(GET PROJECT_VERSION 0 CPACK_PACKAGE_VERSION_MAJOR )
@@ -69,6 +75,7 @@ set_property(
     TARGET ${APP_NAME} PROPERTY COMPILE_DEFINITIONS
     PROJECT_NAME="${PROJECT_NAME}"
     AUTHOR_NAMES="${AUTHORS}"
+    DEBUG="${DEBUG}"
 )
 
 set_target_properties(${APP_NAME} PROPERTIES

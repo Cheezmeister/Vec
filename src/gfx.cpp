@@ -105,6 +105,7 @@ typedef struct _RenderState {
     struct _VBOs {
         VBO enemy;
         VBO player;
+        VBO square;
         VBO nova;
         VBO reticle;
         VBO viewport;
@@ -283,6 +284,7 @@ void init()
 
     // Set up VBO
     renderstate.vbo.player = make_polygon_vbo(3, 0, 0.5);
+    renderstate.vbo.square = make_polygon_vbo(4, 0, 0.5);
     renderstate.vbo.nova = make_polygon_vbo(3, 0.48, 0.5);
     renderstate.vbo.reticle = make_polygon_vbo(5, 0.3, 0.4);
     renderstate.vbo.enemy = make_polygon_vbo(6, 0.1, 0.3);
@@ -354,6 +356,14 @@ void draw_player(GameState& state, u32 ticks)
         set_uniform(shader, "value", checkpoint);
     set_uniform(shader, "scale", state.player.size);
     draw_array(renderstate.vbo.player);
+
+
+    set_uniform(shader, "offset", state.square.pos);
+    set_uniform(shader, "scale", state.square.size);
+    set_uniform(shader, "rotation", π / 4); // TODO does π character break stuff?
+    set_uniform(shader, "ticks", ticks);
+    set_uniform(shader, "phase", 0);
+    draw_array(renderstate.vbo.square);
 }
 
 void draw_reticle(GameState& state, u32 ticks)

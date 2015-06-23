@@ -33,6 +33,7 @@ int entity_count(const GameState& state)
 void init(GameState& state)
 {
     state.player.size = 1;
+    state.square.size = 1;
     spawn_enemies(state);
 }
 
@@ -50,6 +51,9 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
         thrust = params.movespeed * params.mousemovespeed * input.axes.y3;
         sidethrust = params.movespeed * params.mousemovespeed * input.axes.x3;
     }
+
+    state.square.pos.x += params.movespeed * input.axes.x4;
+    state.square.pos.y += params.movespeed * input.axes.y4;
 
     // Shooting
     state.player.cooldown -= (float)state.dticks;
@@ -316,10 +320,19 @@ void collide(GameState& state)
         // skip dead ents
         if (e.life <= 0) continue;
 
+        if (mag_squared(e.pos - state.square.pos) < params.hitbox)
+        {
+            if (e.type == E_BULLET)
+            {
+                state.square.size *= 1.05;
+                destroy_entity(state, e);
+            }
+
+        }
 
         if (mag_squared(e.pos - state.player.pos) < params.hitbox)
         {
-            // Collect bullets to grow (TODO this is a stupid mechanic)
+            // Collect xp to grow
             if (e.type == E_XPCHUNK)
             {
                 state.player.size *= 1.05;
