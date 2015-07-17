@@ -53,6 +53,11 @@ static Vec operator *(const Vec& lhs, float rhs)
     return ret;
 }
 
+static std::ostream& operator<<(std::ostream& lhs, const Vec& rhs)
+{
+    return lhs << '[' << rhs.x << ',' << rhs.y << ']';
+}
+
 static void warn(const char* message)
 {
     logger << "WARNING: " << message << std::endl;

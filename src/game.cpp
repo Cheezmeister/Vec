@@ -5,12 +5,12 @@ using namespace std;
 
 namespace game {
 
-// TODO cleanup
+// TODO cleanup this initialization
 struct _GameParams {
-    float movespeed, mousemovespeed, rotspeed, drag, bulletspeed, enemyspeed, hitbox, frequency ;
-} params = {   0.005,      20.0,             6,  0.9,         0.03, 0.01,       0.005,  30.0 / 60.0 / 4.0 };
+    float movespeed,  squarespeed, mousemovespeed, rotspeed, drag, bulletspeed, enemyspeed, hitbox, frequency ;
+} params = {   0.005,        0.01,       20.0,             6,  0.9,         0.03, 0.01,       0.005,  30.0 / 60.0 / 4.0 };
 
-void collide(GameState& state);
+void collide(GameState& state, const GameState& previousState);
 void add_entity(GameState& state, Entity& e);
 void destroy_entity(GameState& state, Entity& e);
 void spawn_enemies(GameState& state);
@@ -26,7 +26,6 @@ int entity_count(const GameState& state)
     for (int i = 0; i < MAX_ENTITIES; ++i)
         if (state.entities[i].life > 0)
             ++ents;
-    // TODO xpchunk +get life
     return ents;
 }
 
@@ -39,6 +38,8 @@ void init(GameState& state)
 
 void update(GameState& state, u32 ticks, bool debug, const Input& input)
 {
+    GameState previousState = state;
+
     // Aiming
     state.player.reticle.x = input.axes.x2;
     state.player.reticle.y = input.axes.y2;
@@ -52,8 +53,9 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
         sidethrust = params.movespeed * params.mousemovespeed * input.axes.x3;
     }
 
-    state.square.pos.x += params.movespeed * input.axes.x4;
-    state.square.pos.y += params.movespeed * input.axes.y4;
+    // Move square
+    state.square.pos.x += params.squarespeed * input.axes.x4;
+    state.square.pos.y += params.squarespeed * input.axes.y4;
 
     // Shooting
     state.player.cooldown -= (float)state.dticks;
@@ -112,6 +114,12 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
     phase -= floor(phase);
     state.player.phase = phase;
 
+    // Update square
+    if (state.square.size > 1)
+    {
+        state.square.size *= 0.995;
+    }
+
     // Process entities
     for (int i = 0; i < MAX_ENTITIES; ++i)
     {
@@ -152,7 +160,7 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
     }
 
     // Collisions
-    collide(state);
+    collide(state, previousState);
 
     // Game Over
     if (state.player.size <= 0)
@@ -267,7 +275,7 @@ void hurt_entity(GameState& state, Entity& e, float damage)
     }
 }
 
-void collide(GameState& state)
+void collide(GameState& state, const GameState& previousState)
 {
     // Check ent-ent collisions
     for (int i =   0; i < MAX_ENTITIES; ++i)
@@ -320,12 +328,27 @@ void collide(GameState& state)
         // skip dead ents
         if (e.life <= 0) continue;
 
-        if (mag_squared(e.pos - state.square.pos) < params.hitbox)
+        // collide ents with square TODO refactor and fix 0.2 scale wackness
+        bml::Vec offset = e.pos - state.square.pos;
+        float sz = state.square.size * 0.2;
+
+        if (mag_squared(offset) < sz)
+        if (abs(offset.x) < sz / sqrt(2))
+        if (abs(offset.y) < sz / sqrt(2))
         {
-            if (e.type == E_BULLET)
+            if (e.type == E_BULLET) // bullets are absorbed
             {
                 state.square.size *= 1.05;
                 destroy_entity(state, e);
+            }
+            if (e.type == E_ROCKET) // rockets bounce
+            {
+                e.vel.x = -e.vel.x;
+                e.vel.y = -e.vel.y;
+            }
+            if (e.type == E_TURD) // turds block square
+            {
+                state.square.pos = previousState.square.pos;
             }
 
         }

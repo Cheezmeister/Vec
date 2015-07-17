@@ -13,6 +13,7 @@ typedef struct _Args {
     bool debug;
     bool fullscreen;
     bool windowed;
+    bool mute;
 } Args;
 
 typedef struct _Dimension2 {
@@ -45,6 +46,8 @@ int parse_args(int argc, char** argv, Args* outArgs)
                 outArgs->fullscreen = true;
             if (arg[1] == 'w')
                 outArgs->windowed = true;
+            if (arg[1] == 'm')
+                outArgs->mute = true;
         }
     }
 
@@ -338,6 +341,11 @@ int main(int argc, char** argv)
     {
         cerr << "Couldn't set video mode";
         return 2;
+    }
+
+    if (args.mute)
+    {
+        SDL_PauseAudio(1); // HACK TODO volume control
     }
 
     SDL_SetWindowPosition(win, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
