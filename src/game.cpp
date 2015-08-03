@@ -7,8 +7,8 @@ namespace game {
 
 // TODO cleanup this initialization
 struct _GameParams {
-    float movespeed,  squarespeed, mousemovespeed, rotspeed, drag, bulletspeed, enemyspeed, hitbox, frequency ;
-} params = {   0.005,        0.01,       20.0,             6,  0.9,         0.03, 0.01,       0.005,  30.0 / 60.0 / 4.0 };
+    float movespeed,  squarespeed, mousemovespeed, rotspeed, drag, bulletspeed, enemyspeed, hitbox, frequency, squaregrowth ;
+} params = {   0.005,        0.01,       20.0,             6,  0.9,         0.03, 0.01,       0.005,  30.0 / 60.0 / 4.0, 1.05 };
 
 void collide(GameState& state, const GameState& previousState);
 void add_entity(GameState& state, Entity& e);
@@ -32,6 +32,7 @@ int entity_count(const GameState& state)
 void init(GameState& state)
 {
     state.player.size = 1;
+    state.player.type = E_TRIANGLE;
     state.square.size = 1;
     spawn_enemies(state);
 }
@@ -186,6 +187,19 @@ void spawn_enemies(GameState& state)
     }
 }
 
+
+bool check_square_collision(GameState::_Square& square, Entity& e)
+{
+    bml::Vec offset = e.pos - square.pos;
+    float sz = square.size * 0.2;
+    if (mag_squared(offset) < sz)
+    if (abs(offset.x) < sz / sqrt(2))
+    if (abs(offset.y) < sz / sqrt(2))
+    return true;
+
+    return false;
+}
+
 bool check_collision(Entity& a, Entity& b)
 {
     // skip dead ents
@@ -329,16 +343,11 @@ void collide(GameState& state, const GameState& previousState)
         if (e.life <= 0) continue;
 
         // collide ents with square TODO refactor and fix 0.2 scale wackness
-        bml::Vec offset = e.pos - state.square.pos;
-        float sz = state.square.size * 0.2;
-
-        if (mag_squared(offset) < sz)
-        if (abs(offset.x) < sz / sqrt(2))
-        if (abs(offset.y) < sz / sqrt(2))
+        if (check_square_collision(state.square, e))
         {
             if (e.type == E_BULLET) // bullets are absorbed
             {
-                state.square.size *= 1.05;
+                state.square.size *= params.squaregrowth;
                 destroy_entity(state, e);
             }
             if (e.type == E_ROCKET) // rockets bounce
@@ -349,6 +358,11 @@ void collide(GameState& state, const GameState& previousState)
             if (e.type == E_TURD) // turds block square
             {
                 state.square.pos = previousState.square.pos;
+            }
+            if (e.type == E_ENEMY) // turds block square
+            {
+                e.vel = -e.vel;
+                bml::negate(e.vel);
             }
 
         }
@@ -366,7 +380,7 @@ void collide(GameState& state, const GameState& previousState)
             else if (e.type == E_ENEMY)
             {
                 if (state.player.size <= 1)
-                    state.player.size -= 0.1;
+                    ;//state.player.size -= 0.1;
                 else
                     state.player.size *= 0.5;
             }

@@ -27,6 +27,17 @@ typedef struct _Vec {
 
 } Vec;
 
+static void negate(Vec& vec)
+{
+    vec.x = -vec.x;
+    vec.y = -vec.y;
+}
+
+static Vec operator -(const Vec& unary)
+{
+    Vec ret = {-unary.x, -unary.y};
+    return ret;
+}
 static Vec operator -(const Vec& lhs, const Vec& rhs)
 {
     Vec ret = {lhs.x - rhs.x, lhs.y - rhs.y};

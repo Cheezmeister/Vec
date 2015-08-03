@@ -11,6 +11,7 @@ enum {
     E_NOVA,
     E_ENEMY,
     E_XPCHUNK,
+    E_TRIANGLE,
     E_LAST,
 };
 
@@ -26,6 +27,16 @@ typedef struct _Entity {
     float rotation;
     float hue;
 } Entity;
+
+typedef struct _Player : public Entity {
+    float size;
+    float phase; // norm
+    bml::Vec reticle;
+    float cooldown;
+    int killcount;
+    u32 lastkill;
+    int combo;
+} Player;
 
 typedef struct _Event {
     enum Type {
@@ -52,18 +63,7 @@ typedef struct _GameState {
     int next_event;
 
     // Player
-    struct _Player {
-        bml::Vec pos;
-        bml::Vec vel;
-        float size;
-        float rotation; // radians
-        float phase; // norm
-        bml::Vec reticle;
-        float cooldown;
-        int killcount;
-        u32 lastkill;
-        int combo;
-    } player;
+    Player player;
 
     struct _Square {
         bml::Vec pos;

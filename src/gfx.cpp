@@ -462,7 +462,7 @@ void render(GameState& state, u32 ticks, bool debug)
     check_error("clearing to black");
 
     // Render background thingie
-    draw_background(state, ticks);
+    /* draw_background(state, ticks); */
 
     // Render "player" triangle
     draw_player(state, ticks);
