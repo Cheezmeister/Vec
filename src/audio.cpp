@@ -84,7 +84,7 @@ Channel moog  = {0};
 Channel perc  = {0};
 Channel xp    = {0};
 
-Scale& currentMode = dorian;
+Scale& currentMode = ionian;
 
 
 // bullets fired and consumed
@@ -264,7 +264,7 @@ void update(const GameState& state, u32 ticks)
         {
             switch (state.events[i].entity)
             {
-            case E_NOVA:
+            case E_ROCKET:
             {
                 set_note(moog, OCTAVE - fired++ % 8);
                 update_params(moog);

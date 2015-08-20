@@ -100,6 +100,7 @@ namespace gfx
 {
 void init();
 void render(GameState& state, u32 ticks, bool debug);
+void set_viewport(int x, int y);
 }
 
 namespace game

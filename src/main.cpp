@@ -81,6 +81,7 @@ int enter_fullscreen()
     }
     SDL_GetCurrentDisplayMode(0, &dm);
     cout << "Entered fullscreen at " << dm.w << "x" << dm.h << "@" << dm.refresh_rate << "Hz\n";
+    gfx::set_viewport(dm.w, dm.h);
     SDL_ShowCursor(SDL_DISABLE);
     return 0;
 }
@@ -127,11 +128,8 @@ Input handle_input()
             {
                 int x = viewport.x = event.window.data1;
                 int y = viewport.y = event.window.data2;
-                int maxdim = x > y ? x : y;
+                gfx::set_viewport(x, y);
 
-                int xoffset = min( (x - y) / 2, 0);
-                int yoffset = min(-(x - y) / 2, 0);
-                glViewport(xoffset, yoffset, maxdim, maxdim);
             }
         }
 

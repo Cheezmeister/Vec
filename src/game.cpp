@@ -8,7 +8,7 @@ namespace game {
 // TODO cleanup this initialization
 struct _GameParams {
     float movespeed,  squarespeed, mousemovespeed, rotspeed, drag, bulletspeed, enemyspeed, hitbox, frequency, squaregrowth ;
-} params = {   0.005,        0.01,       20.0,             6,  0.9,         0.03, 0.01,       0.005,  30.0 / 60.0 / 4.0, 1.05 };
+} params = {   0.005,        0.01,       20.0,             6,  0.9,         0.03, 0.01,       0.005,  30.0 / 60.0 / 4.0, 1.01 };
 
 void collide(GameState& state, const GameState& previousState);
 void add_entity(GameState& state, Entity& e);
@@ -68,7 +68,7 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
         b.vel = state.player.reticle - state.player.pos;
         b.pos = state.player.pos;
         add_entity(state, b);
-        state.player.cooldown = 60000.0 / (4 * beats_per_minute(state));
+        state.player.cooldown += 60000.0 / (4 * beats_per_minute(state));
     }
     if (input.auxshoot)
     {
