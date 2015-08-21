@@ -48,6 +48,11 @@ static Vec operator +(const Vec& lhs, const Vec& rhs)
     Vec ret = {lhs.x + rhs.x, lhs.y + rhs.y};
     return ret;
 }
+static void operator *=(Vec& lhs, float rhs)
+{
+    lhs.x *= rhs;
+    lhs.y *= rhs;
+}
 static void operator +=(Vec& lhs, const Vec& rhs)
 {
     lhs.x += rhs.x;

@@ -7,8 +7,8 @@ namespace game {
 
 // TODO cleanup this initialization
 struct _GameParams {
-    float movespeed,  squarespeed, mousemovespeed, rotspeed, drag, bulletspeed, enemyspeed, hitbox, frequency, squaregrowth ;
-} params = {   0.005,        0.01,       20.0,             6,  0.9,         0.03, 0.01,       0.005,  30.0 / 60.0 / 4.0, 1.01 };
+    float movespeed,  squarespeed, mousemovespeed, rotspeed, drag, bulletdrag, bulletspeed, enemyspeed, hitbox, frequency, squaregrowth ;
+} params = {   0.005,        0.01,       20.0,             6,  0.9,      0.97,          0.03, 0.01,       0.005,  30.0 / 60.0 / 4.0, 1.01 };
 
 void collide(GameState& state, const GameState& previousState);
 void add_entity(GameState& state, Entity& e);
@@ -132,7 +132,9 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
         // Bullets/Rockets
         case E_BULLET:
         case E_ROCKET:
-            e.life -= 0.01;
+            e.life -= 0.002;
+            if (e.life < 0.95)
+                e.vel *= params.bulletdrag;
             e.pos += e.vel * params.bulletspeed;
             if (e.pos.x > 1 || e.pos.x < -1 || e.pos.y > 1 || e.pos.y < -1)
                 destroy_entity(state, e);
@@ -146,7 +148,7 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
 
         // Enemies/XP Chunks
         case E_ENEMY:
-            e.hue += 0.01;
+            /* e.hue += 0.01; */
         case E_XPCHUNK:
             e.pos += e.vel * params.enemyspeed;
             if (e.pos.x < -1.0) e.pos.x += 2.0;

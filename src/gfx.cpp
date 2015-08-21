@@ -95,6 +95,8 @@ typedef struct _VBO {
 typedef struct _FBO {
     GLuint handle;
     GLuint texture;
+    float width;
+    float height;
 } FBO;
 
 typedef struct _RenderState {
@@ -179,12 +181,14 @@ FBO make_fbo(int width, int height)
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
     GLuint status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
     if (GL_FRAMEBUFFER_COMPLETE != status)
-      cerr << "ERROR Framebuffer a is incomplete. Status was " << status << endl;
+      cerr << "ERROR Framebuffer is incomplete. Status was " << status << endl;
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     FBO ret;
     ret.handle = fbo;
     ret.texture = texture;
+    ret.width = width;
+    ret.height = height;
     return ret;
 
 }
@@ -196,8 +200,8 @@ void set_viewport(int x, int y)
     int yoffset = min(-(x - y) / 2, 0);
     cerr << "Setting viewport to " << xoffset << ',' << yoffset << ' ' << maxdim << ',' << maxdim << endl;
     glViewport(xoffset, yoffset, maxdim, maxdim);
-    renderstate.fbo.a = make_fbo(x, y);
-    renderstate.fbo.b = make_fbo(x, y);
+    renderstate.fbo.a = make_fbo(maxdim, maxdim);
+    renderstate.fbo.b = make_fbo(maxdim, maxdim);
 }
 
 float* make_polygon_vertex_array(int sides, float innerradius, float outerradius)
@@ -340,7 +344,7 @@ void init()
 
 
     // Set up VBO
-    renderstate.vbo.player = make_polygon_vbo(3, 0.3, 0.5);
+    renderstate.vbo.player = make_polygon_vbo(3, 0.0, 0.5);
     renderstate.vbo.square = make_polygon_vbo(4, 0.3, 0.5);
     renderstate.vbo.nova = make_polygon_vbo(3, 0.48, 0.5);
     renderstate.vbo.reticle = make_polygon_vbo(5, 0.3, 0.4);
@@ -357,7 +361,7 @@ void init()
 
     // Init shaders
     renderstate.shaders.player = make_shader(vs_pulse, fs_scintillate);
-    renderstate.shaders.reticle = make_shader(vs_pulse, fs_pulse);
+    renderstate.shaders.reticle = make_shader(vs_pulse, fs_scintillate);
     renderstate.shaders.enemy = make_shader(vs_wiggle, fs_pulse);
     renderstate.shaders.viewport = make_shader(vs_pulse, fs_scintillate);
     renderstate.shaders.turd = make_shader(vs_pulse, fs_scintillate);
@@ -434,6 +438,10 @@ void draw_reticle(GameState& state, u32 ticks)
     glUseProgram(shader);
     set_uniform(shader, "offset", state.player.reticle);
     set_uniform(shader, "rotation", ticks / 1000.0f);
+    set_uniform(shader, "phase", state.player.phase);
+    float checkpoint = fabs(state.player.phase - 0.5) * 40;
+    if (checkpoint < 1.0)
+        set_uniform(shader, "value", checkpoint);
     set_uniform(shader, "ticks", ticks);
     set_uniform(shader, "scale", 1);
     draw_array(renderstate.vbo.reticle);
@@ -494,7 +502,7 @@ void draw_entities(GameState& state, u32 ticks)
             glUseProgram(shader);
             set_uniform(shader, "offset", e.pos);
             set_uniform(shader, "rotation", 0.0);
-            set_uniform(shader, "scale", 0.4);
+            set_uniform(shader, "scale", 0.2);
             set_uniform(shader, "ticks", ticks);
             set_uniform(shader, "hue", e.hue);
             draw_array(renderstate.vbo.enemy);
@@ -525,6 +533,11 @@ void draw_glowy_things(GameState& state, u32 ticks)
     draw_entities(state, ticks);
 }
 
+void use_framebuffer(const FBO& fbo)
+{
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo.handle); check_error("binding fbo");
+}
+
 // Render a frame
 void render(GameState& state, u32 ticks, bool debug)
 {
@@ -543,20 +556,22 @@ void render(GameState& state, u32 ticks, bool debug)
 
     // Glow filter
     glUseProgram(renderstate.shaders.post_blur); check_error("using program");
-    set_uniform(renderstate.shaders.post_blur, "texFramebuffer", renderstate.fbo.a.texture); check_error("setting texture uniform");
+    /* set_uniform(renderstate.shaders.post_blur, "texFramebuffer", renderstate.fbo.a.texture); check_error("setting texture uniform 1"); */
 
     glBindTexture(GL_TEXTURE_2D, renderstate.fbo.a.texture); check_error("binding texture here");
-    glBindFramebuffer(GL_FRAMEBUFFER, renderstate.fbo.b.handle); check_error("binding fbo.a");
+    use_framebuffer(renderstate.fbo.b);
     Vec uX = {1, 0};
-    set_uniform(renderstate.shaders.post_blur, "texSource", renderstate.fbo.a.texture); check_error("setting texture uniform");
+    set_uniform(renderstate.shaders.post_blur, "texSource", renderstate.fbo.a.texture); check_error("setting texture uniform 2");
     set_uniform(renderstate.shaders.post_blur, "dir", uX); check_error("setting direction");
+    set_uniform(renderstate.shaders.post_blur, "textureSize", renderstate.fbo.a.width); check_error("setting direction");
     draw_array(renderstate.vbo.viewport, GL_QUADS); check_error("drawing");
 
     glBindTexture(GL_TEXTURE_2D, renderstate.fbo.b.texture); check_error("binding texture here");
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     Vec uY = {0, 1};
-    set_uniform(renderstate.shaders.post_blur, "texSource", renderstate.fbo.b.texture); check_error("setting texture uniform");
+    set_uniform(renderstate.shaders.post_blur, "texSource", renderstate.fbo.b.texture); check_error("setting texture uniform 3");
     set_uniform(renderstate.shaders.post_blur, "dir", uY);
+    set_uniform(renderstate.shaders.post_blur, "textureSize", renderstate.fbo.a.height); check_error("setting direction");
     draw_array(renderstate.vbo.viewport, GL_QUADS); check_error("drawing");
     glUseProgram(0);
 
