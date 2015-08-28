@@ -39,27 +39,20 @@
 #define rnd(n) (rand()%(n+1))
 #define PI 3.14159265f
 
-// SFXD Globals
-const int MAX_CHANNELS = 12;
-int num_channels = 0;
-float master_vol = 0.05f;
-bool mute_stream;
-
+// forward
+struct SFXD_Sample;
+void ResetSample(SFXD_Sample& channel, bool restart);
 
 float frnd(float range)
 {
 	return (float)rnd(10000)/10000*range;
 }
 
-// forward
-struct SFXD_Sample;
-void ResetSample(SFXD_Sample& channel, bool restart);
 
-
-typedef struct SFXD_Sample {
+struct SFXD_Sample {
 	SFXD_Params params;
 
-	bool playing_sample = false;
+	bool playing_sample;
 	int phase;
 	double fperiod;
 	double fmaxperiod;
@@ -95,206 +88,217 @@ typedef struct SFXD_Sample {
 	int arp_limit;
 	double arp_mod;
 
-	float sound_vol = 0.5f;
+	float sound_vol;
 
 
 	// TODO this is a method to save me typing a bunch of qualifiers. More consistent to make it an oldschool function.
-	void SynthSample(int length, float* buffer)
-	{
-		int i;
-		for (i = 0; i<length; i++)
-		{
-			if (!playing_sample)
-				break;
-
-			rep_time++;
-			if (rep_limit != 0 && rep_time >= rep_limit)
-			{
-				rep_time = 0;
-				ResetSample(*this, true);
-			}
-
-			// frequency envelopes/arpeggios
-			arp_time++;
-			if (arp_limit != 0 && arp_time >= arp_limit)
-			{
-				arp_limit = 0;
-				fperiod *= arp_mod;
-			}
-			fslide += fdslide;
-			fperiod *= fslide;
-			if (fperiod>fmaxperiod)
-			{
-				fperiod = fmaxperiod;
-				if (params.p_freq_limit>0.0f)
-					playing_sample = false;
-			}
-			float rfperiod = fperiod;
-			if (vib_amp>0.0f)
-			{
-				vib_phase += vib_speed;
-				rfperiod = fperiod*(1.0 + sin(vib_phase)*vib_amp);
-			}
-			period = (int)rfperiod;
-			if (period<8) period = 8;
-			square_duty += square_slide;
-			if (square_duty<0.0f) square_duty = 0.0f;
-			if (square_duty>0.5f) square_duty = 0.5f;
-			// volume envelope
-			env_time++;
-			if (env_time>env_length[env_stage])
-			{
-				env_time = 0;
-				env_stage++;
-				if (env_stage == 3)
-					playing_sample = false;
-			}
-			if (env_stage == 0)
-				env_vol = (float)env_time / env_length[0];
-			if (env_stage == 1)
-				env_vol = 1.0f + pow(1.0f - (float)env_time / env_length[1], 1.0f)*2.0f*params.p_env_punch;
-			if (env_stage == 2)
-				env_vol = 1.0f - (float)env_time / env_length[2];
-
-			// phaser step
-			fphase += fdphase;
-			iphase = abs((int)fphase);
-			if (iphase>1023) iphase = 1023;
-
-			if (flthp_d != 0.0f)
-			{
-				flthp *= flthp_d;
-				if (flthp<0.00001f) flthp = 0.00001f;
-				if (flthp>0.1f) flthp = 0.1f;
-			}
-
-			float ssample = 0.0f;
-			for (int si = 0; si<8; si++) // 8x supersampling
-			{
-				float sample = 0.0f;
-				phase++;
-				if (phase >= period)
-				{
-					//				phase=0;
-					phase %= period;
-					if (params.wave_type == 3)
-						for (int i = 0; i<32; i++)
-							noise_buffer[i] = frnd(2.0f) - 1.0f;
-				}
-				// base waveform
-				float fp = (float)phase / period;
-				switch (params.wave_type)
-				{
-				case 0: // square
-					if (fp<square_duty)
-						sample = 0.5f;
-					else
-						sample = -0.5f;
-					break;
-				case 1: // sawtooth
-					sample = 1.0f - fp * 2;
-					break;
-				case 2: // sine
-					sample = (float)sin(fp * 2 * PI);
-					break;
-				case 3: // noise
-					sample = noise_buffer[phase * 32 / period];
-					break;
-				}
-				// lp filter
-				float pp = fltp;
-				fltw *= fltw_d;
-				if (fltw<0.0f) fltw = 0.0f;
-				if (fltw>0.1f) fltw = 0.1f;
-				if (params.p_lpf_freq != 1.0f)
-				{
-					fltdp += (sample - fltp)*fltw;
-					fltdp -= fltdp*fltdmp;
-				}
-				else
-				{
-					fltp = sample;
-					fltdp = 0.0f;
-				}
-				fltp += fltdp;
-				// hp filter
-				fltphp += fltp - pp;
-				fltphp -= fltphp*flthp;
-				sample = fltphp;
-				// phaser
-				phaser_buffer[ipp & 1023] = sample;
-				sample += phaser_buffer[(ipp - iphase + 1024) & 1023];
-				ipp = (ipp + 1) & 1023;
-				// final accumulation and envelope application
-				ssample += sample*env_vol;
-			}
-			ssample = ssample / 8 * master_vol;
-
-			ssample *= 2.0f*sound_vol;
-
-			if (buffer != NULL)
-			{
-				if (ssample>1.0f) ssample = 1.0f;
-				if (ssample<-1.0f) ssample = -1.0f;
-				*buffer++ = ssample;
-			}
-		}
-		for (int j = i; j < length; ++j)
-		{
-			*buffer++ = 0;
-		}
-	} // SynthSample
+	void SynthSample(int length, float* buffer);
 
 };
+
+
+
+// SFXD Module Globals
+const int MAX_CHANNELS = 12;
+int num_channels = 0;
+float master_vol = 0.05f;
+bool mute_stream;
+
 SFXD_Sample channels[MAX_CHANNELS];
 
+void SynthSample(SFXD_Sample& sample, int length, float* buffer)
+{
+  int i;
+  for (i = 0; i<length; i++)
+  {
+    if (!sample.playing_sample)
+      break;
 
+    sample.rep_time++;
+    if (sample.rep_limit != 0 && sample.rep_time >= sample.rep_limit)
+    {
+      sample.rep_time = 0;
+      ResetSample(sample, true);
+    }
+
+    // frequency envelopes/arpeggios
+    sample.arp_time++;
+    if (sample.arp_limit != 0 && sample.arp_time >= sample.arp_limit)
+    {
+      sample.arp_limit = 0;
+      sample.fperiod *= sample.arp_mod;
+    }
+    sample.fslide += sample.fdslide;
+    sample.fperiod *= sample.fslide;
+    if (sample.fperiod > sample.fmaxperiod)
+    {
+      sample.fperiod = sample.fmaxperiod;
+      if (sample.params.p_freq_limit>0.0f)
+        sample.playing_sample = false;
+    }
+    float rfperiod = sample.fperiod;
+    if (sample.vib_amp>0.0f)
+    {
+      sample.vib_phase += sample.vib_speed;
+      float vib = sin(sample.vib_phase) * sample.vib_amp;
+      rfperiod = sample.fperiod*(1.0 + vib);
+    }
+    sample.period = (int)rfperiod;
+    if (sample.period < 8) sample.period = 8;
+    sample.square_duty += sample.square_slide;
+    if (sample.square_duty<0.0f) sample.square_duty = 0.0f;
+    if (sample.square_duty>0.5f) sample.square_duty = 0.5f;
+    // volume envelope
+    sample.env_time++;
+    if (sample.env_time>sample.env_length[sample.env_stage])
+    {
+      sample.env_time = 0;
+      sample.env_stage++;
+      if (sample.env_stage == 3)
+        sample.playing_sample = false;
+    }
+    if (sample.env_stage == 0)
+      sample.env_vol = (float)sample.env_time / sample.env_length[0];
+    if (sample.env_stage == 1)
+      sample.env_vol = 1.0f + pow(1.0f - (float)sample.env_time / sample.env_length[1], 1.0f)*2.0f*sample.params.p_env_punch;
+    if (sample.env_stage == 2)
+      sample.env_vol = 1.0f - (float)sample.env_time / sample.env_length[2];
+
+    // phaser step
+    sample.fphase += sample.fdphase;
+    sample.iphase = abs((int)sample.fphase);
+    if (sample.iphase>1023) sample.iphase = 1023;
+
+    if (sample.flthp_d != 0.0f)
+    {
+      sample.flthp *= sample.flthp_d;
+      if (sample.flthp < 0.00001f) sample.flthp = 0.00001f;
+      if (sample.flthp > 0.1f) sample.flthp = 0.1f;
+    }
+
+    float ssample = 0.0f;
+    for (int si = 0; si < 8; si++) // 8x supersampling
+    {
+      float val = 0.0f;
+      sample.phase++;
+      if (sample.phase >= sample.period)
+      {
+        //				phase=0;
+        sample.phase %= sample.period;
+        if (sample.params.wave_type == 3)
+          for (int i = 0; i<32; i++)
+            sample.noise_buffer[i] = frnd(2.0f) - 1.0f;
+      }
+      // base waveform
+      float fp = (float)sample.phase / sample.period;
+      switch (sample.params.wave_type)
+      {
+      case 0: // square
+        if (fp < sample.square_duty)
+          val = 0.5f;
+        else
+          val = -0.5f;
+        break;
+      case 1: // sawtooth
+        val = 1.0f - fp * 2;
+        break;
+      case 2: // sine
+        val = (float)sin(fp * 2 * PI);
+        break;
+      case 3: // noise
+        val = sample.noise_buffer[sample.phase * 32 / sample.period];
+        break;
+      }
+      // lp filter
+      float pp = sample.fltp;
+      sample.fltw *= sample.fltw_d;
+      if (sample.fltw < 0.0f) sample.fltw = 0.0f;
+      if (sample.fltw > 0.1f) sample.fltw = 0.1f;
+      if (sample.params.p_lpf_freq != 1.0f)
+      {
+        sample.fltdp += (val - sample.fltp) * sample.fltw;
+        sample.fltdp -= sample.fltdp * sample.fltdmp;
+      }
+      else
+      {
+        sample.fltp = val;
+        sample.fltdp = 0.0f;
+      }
+      sample.fltp += sample.fltdp;
+      // hp filter
+      sample.fltphp += sample.fltp - pp;
+      sample.fltphp -= sample.fltphp * sample.flthp;
+      val = sample.fltphp;
+      // phaser
+      sample.phaser_buffer[sample.ipp & 1023] = val;
+      val += sample.phaser_buffer[(sample.ipp - sample.iphase + 1024) & 1023];
+      sample.ipp = (sample.ipp + 1) & 1023;
+      // final accumulation and envelope application
+      ssample += val * sample.env_vol;
+    }
+    ssample = ssample / 8 * master_vol;
+
+    ssample *= 2.0f * sample.params.sound_vol;
+
+    if (buffer != NULL)
+    {
+      if (ssample>1.0f) ssample = 1.0f;
+      if (ssample<-1.0f) ssample = -1.0f;
+      *buffer++ = ssample;
+    }
+  }
+  for (int j = i; j < length; ++j)
+  {
+    *buffer++ = 0;
+  }
+} // SynthSample
 
 
 
 // Set default params (sqre wave, minimal filtering)
 void ResetParams(int channelNum = 0)
 {
-	SFXD_Params& channel = channels[channelNum].params;
+	SFXD_Params& parms = channels[channelNum].params;
 
-	channel.wave_type=0;
+	parms.wave_type=0;
 	
-	channel.p_base_freq=0.3f;
-	channel.p_freq_limit=0.0f;
-	channel.p_freq_ramp=0.0f;
-	channel.p_freq_dramp=0.0f;
-	channel.p_duty=0.0f;
-	channel.p_duty_ramp=0.0f;
+	parms.p_base_freq=0.3f;
+	parms.p_freq_limit=0.0f;
+	parms.p_freq_ramp=0.0f;
+	parms.p_freq_dramp=0.0f;
+	parms.p_duty=0.0f;
+	parms.p_duty_ramp=0.0f;
 
-	channel.p_vib_strength=0.0f;
-	channel.p_vib_speed=0.0f;
-	channel.p_vib_delay=0.0f;
+	parms.p_vib_strength=0.0f;
+	parms.p_vib_speed=0.0f;
+	parms.p_vib_delay=0.0f;
 
-	channel.p_env_attack=0.0f;
-	channel.p_env_sustain=0.3f;
-	channel.p_env_decay=0.4f;
-	channel.p_env_punch=0.0f;
+	parms.p_env_attack=0.0f;
+	parms.p_env_sustain=0.3f;
+	parms.p_env_decay=0.4f;
+	parms.p_env_punch=0.0f;
 
-	channel.filter_on=false;
-	channel.p_lpf_resonance=0.0f;
-	channel.p_lpf_freq=1.0f;
-	channel.p_lpf_ramp=0.0f;
-	channel.p_hpf_freq=0.0f;
-	channel.p_hpf_ramp=0.0f;
+	parms.filter_on=false;
+	parms.p_lpf_resonance=0.0f;
+	parms.p_lpf_freq=1.0f;
+	parms.p_lpf_ramp=0.0f;
+	parms.p_hpf_freq=0.0f;
+	parms.p_hpf_ramp=0.0f;
 
-	channel.p_pha_offset=0.0f;
-	channel.p_pha_ramp=0.0f;
+	parms.p_pha_offset=0.0f;
+	parms.p_pha_ramp=0.0f;
 
-	channel.p_repeat_speed=0.0f;
+	parms.p_repeat_speed=0.0f;
 
-	channel.p_arp_speed=0.0f;
-	channel.p_arp_mod=0.0f;
+	parms.p_arp_speed=0.0f;
+	parms.p_arp_mod=0.0f;
 }
 
 void ResetSample(SFXD_Sample& channel, bool restart)
 {
 	SFXD_Params& params = channel.params;
 
+  channel.playing_sample = false;
 	if (!restart)
 		channel.phase = 0;
 	channel.fperiod = 100.0 / (params.p_base_freq); // FIXME wtf units is this in
@@ -374,19 +378,14 @@ static void SDLAudioCallback(void *userdata, Uint8 *stream, int len)
 		{
 			unsigned int l = len / 2;
 			float* fbuf = new float[l]; // TODO buffer in sample struct
-			memset(fbuf, 0, sizeof(fbuf));
-			sample.SynthSample(l, fbuf);
+			memset(fbuf, 0, l*sizeof(float));
+			SynthSample(sample, l, fbuf);
 			while (l--)
 			{
 				float f = fbuf[l];
 				if (f < -1.0) f = -1.0;
 				if (f > 1.0) f = 1.0;
 				((Sint16*)stream)[l] += (Sint16)(f * 32767);
-				//for (int j = 0; j < f * 80; ++j)
-				//{
-				//	printf("x");
-				//}
-				//printf("\n");
 			}
 			delete[] fbuf;
 		}
@@ -421,7 +420,6 @@ void SFXD_SetParams(int channelNum, const SFXD_Params& params)
 	channel.params.p_repeat_speed = params.p_repeat_speed;
 	channel.params.p_arp_speed = params.p_arp_speed;
 	channel.params.p_arp_mod = params.p_arp_mod;
-	//master_vol = params.master_vol;
 	channel.params.sound_vol = params.sound_vol;
 }
 

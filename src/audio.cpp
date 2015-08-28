@@ -140,6 +140,7 @@ void init_channels()
     enemy.params.p_env_sustain = 0.2f;
     enemy.params.p_env_decay = 0.7f;
     enemy.params.p_lpf_freq = 1.0f;
+    enemy.params.sound_vol = 0.5f;
 
     xp.id = ++nextId;
     xp.octave = -1;
@@ -150,6 +151,7 @@ void init_channels()
     xp.params.p_env_sustain = 0.2f;
     xp.params.p_env_decay = 0.3f;
     xp.params.p_lpf_freq = 1.0f;
+    xp.params.sound_vol = 0.5f;
 
     bass.id = ++nextId;
     bass.pattern = 0x10000000;
@@ -163,6 +165,7 @@ void init_channels()
     bass.params.p_lpf_freq = 1.0f;
     bass.params.p_arp_speed = 0.28f;
     bass.params.p_arp_mod = 0.05;
+    bass.params.sound_vol = 0.5f;
 
     bell.id = ++nextId;
     bell.pattern = 0x00001000;
@@ -177,6 +180,7 @@ void init_channels()
     bell.params.p_lpf_ramp = -1.0f;
     bell.params.p_arp_speed = 0.28f;
     bell.params.p_arp_mod = 0.05;
+    bell.params.sound_vol = 0.5f;
 
     clink.id = ++nextId;
     clink.params.wave_type = WAVE_SQUARE;
@@ -190,6 +194,7 @@ void init_channels()
     clink.params.p_lpf_ramp = -1.0f;
     clink.params.p_arp_speed = 0.28f;
     clink.params.p_arp_mod = 0.05;
+    clink.params.sound_vol = 0.5f;
 
     moog.id = ++nextId;
     moog.params.wave_type = WAVE_SQUARE;
@@ -202,6 +207,7 @@ void init_channels()
     moog.params.p_lpf_freq = 0.5;
     moog.params.p_lpf_resonance = 1.5;
     moog.params.p_lpf_ramp = -0.9f;
+    moog.params.sound_vol = 0.5f;
 
     xylo.id = ++nextId;
     xylo.params.wave_type = WAVE_SINE;
@@ -214,6 +220,7 @@ void init_channels()
     xylo.params.p_lpf_ramp = -1.0f;
     xylo.params.p_arp_speed = 0.28f;
     xylo.params.p_arp_mod = 0.05;
+    xylo.params.sound_vol = 0.5f;
 
     perc.id = ++nextId;
     perc.pattern = 0x10101010;
@@ -226,6 +233,7 @@ void init_channels()
     perc.params.p_lpf_freq = 1.0f;
     perc.params.p_arp_speed = 0.28f;
     perc.params.p_arp_mod = 0.05;
+    perc.params.sound_vol = 0.5f;
 
     hat.id = ++nextId;
     hat.pattern = 0x11111111;
@@ -238,6 +246,7 @@ void init_channels()
     hat.params.p_lpf_freq = 1.0f;
     hat.params.p_arp_speed = 0.28f;
     hat.params.p_arp_mod = 0.05;
+    hat.params.sound_vol = 0.5f;
 }
 
 void mutate_samples()

@@ -147,7 +147,12 @@ void check_error(const string& message)
     GLenum error = glGetError();
     if (error)
     {
-        logger << message.c_str() << " reported error: " << error << ' ' << gluErrorString(error) << endl;
+        logger << "Error " << message.c_str() << ": [" << error << "] ";
+        switch (error)
+        {
+          case 1282: logger << "invalid operation\n"; return;
+          default: logger << "unknown error\n"; return;
+        }
     }
 }
 
@@ -312,6 +317,11 @@ void draw_array(VBO vbo, GLenum type = GL_TRIANGLES)
 GLuint make_shader(GLuint vertex, GLuint fragment)
 {
     return arcsynthesis::CreateProgram(vertex, fragment);
+}
+
+void use_framebuffer(const FBO& fbo)
+{
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo.handle); check_error("binding fbo");
 }
 
 void init()
@@ -531,11 +541,6 @@ void draw_glowy_things(GameState& state, u32 ticks)
 
     // Render bullets, enemies and turds
     draw_entities(state, ticks);
-}
-
-void use_framebuffer(const FBO& fbo)
-{
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo.handle); check_error("binding fbo");
 }
 
 // Render a frame
