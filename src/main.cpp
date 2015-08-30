@@ -118,8 +118,9 @@ Input handle_input()
             {
                 if (enter_fullscreen()) continue;
             }
-            if (event.key.keysym.sym == SDLK_SPACE) ret.auxshoot = true;
+            /* if (event.key.keysym.sym == SDLK_SPACE) ret.auxshoot = true; */
             if (event.key.keysym.sym == SDLK_LSHIFT) ret.auxpoop = true;
+            if (event.key.keysym.sym == SDLK_r) ret.auxpoop = true;
         }
 
         if (event.type == SDL_WINDOWEVENT)
@@ -212,6 +213,7 @@ Input handle_input()
     ret.axes.x4 -= 1.0 * (keystate[SDL_SCANCODE_LEFT]);
     ret.shoot |= (0 != keystate[SDL_SCANCODE_E]);
     ret.poop |= (0 != keystate[SDL_SCANCODE_Q]);
+    ret.attract |= (0 != keystate[SDL_SCANCODE_SPACE]);
 
     // Poll gamepad
     float deadzone = 0.15;

@@ -68,6 +68,7 @@ typedef struct _GameState {
     struct _Square {
         bml::Vec pos;
         float size;
+        bool attract;
     } square;
 
     bool over; // game over?
@@ -88,6 +89,9 @@ typedef struct _Input {
     bool poop; // primary poop is held
     bool auxshoot; // aux fire was pressed
     bool auxpoop; // aux poop was pressed
+
+    bool attract; // square attract button is held
+    bool respawn; // force respawn ents
 
 } Input;
 

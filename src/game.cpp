@@ -7,8 +7,8 @@ namespace game {
 
 // TODO cleanup this initialization
 struct _GameParams {
-    float movespeed,  squarespeed, mousemovespeed, rotspeed, drag, bulletdrag, bulletspeed, enemyspeed, hitbox, frequency, squaregrowth ;
-} params = {   0.005,        0.01,       20.0,             6,  0.9,      0.97,          0.03, 0.01,       0.005,  30.0 / 60.0 / 4.0, 1.01 };
+    float movespeed,  squarespeed, mousemovespeed, rotspeed, drag, bulletdrag, bulletspeed, enemyspeed, hitbox, frequency, squaregrowth, squaregravity ;
+} params = {   0.005,        0.01,       20.0,             6,  0.9,      0.97,          0.03, 0.01,       0.005,  30.0 / 60.0 / 4.0, 1.01, 0.02 };
 
 void collide(GameState& state, const GameState& previousState);
 void add_entity(GameState& state, Entity& e);
@@ -40,6 +40,10 @@ void init(GameState& state)
 void update(GameState& state, u32 ticks, bool debug, const Input& input)
 {
     GameState previousState = state;
+
+    // HACK TODO
+    if (input.respawn && entity_count(state) == 0)
+        spawn_enemies(state);
 
     // Aiming
     state.player.reticle.x = input.axes.x2;
@@ -100,6 +104,7 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
         t.life = 1;
         add_entity(state, t);
     }
+    state.square.attract = input.attract;
 
     // Update player (TODO: implement real polar movement)
     float r = state.player.rotation;
@@ -150,11 +155,21 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
         case E_ENEMY:
             /* e.hue += 0.01; */
         case E_XPCHUNK:
+            // Move
             e.pos += e.vel * params.enemyspeed;
+
+            // Wrap
             if (e.pos.x < -1.0) e.pos.x += 2.0;
             if (e.pos.y < -1.0) e.pos.y += 2.0;
             if (e.pos.x > 1.0) e.pos.x -= 2.0;
             if (e.pos.y > 1.0) e.pos.y -= 2.0;
+
+            // Attract
+            if (state.square.attract)
+            {
+                bml::Vec offset = e.pos - state.square.pos;
+                e.pos -= offset * params.squaregravity;
+            }
             continue;
 
         default:
