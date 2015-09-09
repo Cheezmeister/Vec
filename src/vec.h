@@ -75,7 +75,11 @@ typedef struct _GameState {
 } GameState;
 
 typedef struct _Input {
-    bool quit;
+
+    struct _Sys {
+        bool quit;
+        bool fullscreen;
+    } sys;
 
     // Normalized (-1.0 <-> 1.0) axes
     struct _Axes {
@@ -117,4 +121,11 @@ namespace audio
 {
 void init(u32 ticks);
 void update(const GameState& state, u32 ticks);
+}
+
+namespace input
+{
+void init();
+Input handle_input();
+void cleanup();
 }

@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 2.6)
 #definitions
 set(PROJECT_NAME "Vec")
 set(APP_NAME vec)
-set(PROJECT_VERSION 1 0 7)
+set(PROJECT_VERSION 1 0 8)
 set(DESCRIPTION "Dual-mouse arcade thing")
 set(README README.md)
 set(LICENSE ${README})
@@ -29,17 +29,23 @@ cmake_policy(VERSION 2.8)
 #declare the project
 project(${PROJECT_NAME} )
 
+option(USE_EMSCRIPTEN "Set this true if deploying to JS with emscripten" OFF)
+
 #Find required tools (SDL, GL, GLEW)
-find_package(SDL REQUIRED)
-find_package(OpenGL REQUIRED)
-list(APPEND LINKED_LIBS ${SDL_LIBRARY})
-list(APPEND LINKED_LIBS ${SDLMAIN_LIBRARY})
-list(APPEND LINKED_LIBS ${OPENGL_LIBRARY})
-if(APPLE) # ManyMouse OSX depends on this wonkiness
-  find_library(IOKIT IOKit)
-  find_library(COREFOUNDATION CoreFoundation)
-  list(APPEND LINKED_LIBS ${IOKIT} ${COREFOUNDATION} )
-  set(APP_SUFFIX "osx")
+if (USE_EMSCRIPTEN)
+
+else()
+  find_package(SDL REQUIRED)
+  find_package(OpenGL REQUIRED)
+  list(APPEND LINKED_LIBS ${SDL_LIBRARY})
+  list(APPEND LINKED_LIBS ${SDLMAIN_LIBRARY})
+  list(APPEND LINKED_LIBS ${OPENGL_LIBRARY})
+  if(APPLE) # ManyMouse OSX depends on this wonkiness
+    find_library(IOKIT IOKit)
+    find_library(COREFOUNDATION CoreFoundation)
+    list(APPEND LINKED_LIBS ${IOKIT} ${COREFOUNDATION} )
+    set(APP_SUFFIX "osx")
+  endif()
 endif()
 
 
@@ -57,6 +63,7 @@ list(APPEND SOURCES
   src/game.cpp 
   src/gfx.cpp
   src/audio.cpp
+  src/input.cpp
   vendor/manymouse/windows_wminput.c
   vendor/manymouse/manymouse.c
   vendor/manymouse/macosx_hidmanager.c
@@ -77,6 +84,10 @@ set_property(
     AUTHOR_NAMES="${AUTHORS}"
     DEBUG="${DEBUG}"
 )
+if (USE_EMSCRIPTEN)
+    add_definitions("-DUSE_EMSCRIPTEN=1")
+    add_definitions("-D__EMSCRIPTEN__=1")
+endif()
 
 set_target_properties(${APP_NAME} PROPERTIES
   OUTPUT_NAME "${APP_NAME}-${VERSION_STRING}-${APP_SUFFIX}"

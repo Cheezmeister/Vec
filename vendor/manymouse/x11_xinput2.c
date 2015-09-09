@@ -19,7 +19,7 @@
 #endif
 #endif
 
-#if SUPPORT_XINPUT2
+#if SUPPORT_XINPUT2 && !USE_EMSCRIPTEN
 
 #include <stdio.h>
 #include <stdlib.h>
