@@ -6,6 +6,8 @@
 // http://stackoverflow.com/a/13874526
 #define MAKE_SHADER(version, shader)  "#version " #version "\n" #shader
 
+#define GLSL_VERSION "#version 120\n"
+
 using namespace std;
 using namespace bml;
 
@@ -112,6 +114,8 @@ typedef struct _RenderState {
         GLuint post_blur;
         GLuint post_fade;
     } shaders;
+
+    // VBO for each major ent type
     struct _VBOs {
         VBO enemy;
         VBO player;
@@ -120,6 +124,8 @@ typedef struct _RenderState {
         VBO reticle;
         VBO viewport;
     } vbo;
+
+    // Two framebuffers for two-pass glow
     struct _FBOs {
         FBO a;
         FBO b;
@@ -135,8 +141,19 @@ typedef struct _RenderParams {
     } enemy;
 } RenderParams;
 
-RenderState renderstate;
-RenderParams params = {
+typedef struct _RenderArgs {
+    const RenderParams& params;
+    const GameState& gs;
+    const RenderState& rs;
+    u32 ticks;
+    bool debug;
+} RenderArgs;
+
+typedef const RenderState& RS;
+typedef const GameState& GS;
+
+RenderState _renderstate;
+RenderParams _params = {
     { 0.01f },
     { 0.0025f }
 };
@@ -205,8 +222,8 @@ void set_viewport(int x, int y)
     int yoffset = min(-(x - y) / 2, 0);
     cerr << "Setting viewport to " << xoffset << ',' << yoffset << ' ' << maxdim << ',' << maxdim << endl;
     glViewport(xoffset, yoffset, maxdim, maxdim);
-    renderstate.fbo.a = make_fbo(maxdim, maxdim);
-    renderstate.fbo.b = make_fbo(maxdim, maxdim);
+    _renderstate.fbo.a = make_fbo(maxdim, maxdim);
+    _renderstate.fbo.b = make_fbo(maxdim, maxdim);
 }
 
 float* make_polygon_vertex_array(int sides, float innerradius, float outerradius)
@@ -326,29 +343,31 @@ void use_framebuffer(const FBO& fbo)
 
 void init()
 {
+    RenderState& renderstate = _renderstate;
+
     // Compile shaders
-    GLuint vs_noop = arcsynthesis::CreateShader(GL_VERTEX_SHADER, "#version 120\n"
+    GLuint vs_noop = arcsynthesis::CreateShader(GL_VERTEX_SHADER, GLSL_VERSION
 #include "noop.vs"
         );
-    GLuint vs_pulse = arcsynthesis::CreateShader(GL_VERTEX_SHADER, "#version 120\n"
+    GLuint vs_pulse = arcsynthesis::CreateShader(GL_VERTEX_SHADER, GLSL_VERSION
 #include "pulse.vs"
         );
-    GLuint vs_wiggle = arcsynthesis::CreateShader(GL_VERTEX_SHADER, "#version 120  \n"
+    GLuint vs_wiggle = arcsynthesis::CreateShader(GL_VERTEX_SHADER, GLSL_VERSION
 #include "wiggle.vs"
         );
-    GLuint fs_scintillate = arcsynthesis::CreateShader(GL_FRAGMENT_SHADER, "#version 120 \n"
+    GLuint fs_scintillate = arcsynthesis::CreateShader(GL_FRAGMENT_SHADER, GLSL_VERSION
 #include "scintillate.fs"
                                                       );
-    GLuint fs_pulse = arcsynthesis::CreateShader(GL_FRAGMENT_SHADER, "#version 120 \n"
+    GLuint fs_pulse = arcsynthesis::CreateShader(GL_FRAGMENT_SHADER, GLSL_VERSION
 #include "pulse.fs"
                                                 );
-    GLuint fs_circle = arcsynthesis::CreateShader(GL_FRAGMENT_SHADER, "#version 120 \n"
+    GLuint fs_circle = arcsynthesis::CreateShader(GL_FRAGMENT_SHADER, GLSL_VERSION
 #include "circle.fs"
                                                  );
-    GLuint fs_glow = arcsynthesis::CreateShader(GL_FRAGMENT_SHADER, "#version 120 \n"
+    GLuint fs_glow = arcsynthesis::CreateShader(GL_FRAGMENT_SHADER, GLSL_VERSION
 #include "glow.fs"
         );
-    GLuint fs_fade = arcsynthesis::CreateShader(GL_FRAGMENT_SHADER, "#version 120 \n"
+    GLuint fs_fade = arcsynthesis::CreateShader(GL_FRAGMENT_SHADER, GLSL_VERSION
 #include "fade.fs"
         );
 
@@ -389,43 +408,46 @@ void init()
 
 }
 
-void draw_background(GameState& state, u32 ticks)
+/* void draw_background(GameState& state, u32 ticks) */
+/* { */
+/*     GLuint shader = renderstate.shaders.viewport; */
+/*     VBO vbo = renderstate.vbo.viewport; */
+/*     glUseProgram(shader); */
+
+/*     // TODO figure out why can't set this prior to glUseProgram */
+/*     set_uniform(renderstate.shaders.viewport, "value", 0.3); //darken */
+
+/*     set_uniform(shader, "scale", 4); */
+/*     set_uniform(shader, "ticks", ticks + 1400); */
+/*     set_uniform(shader, "phase", state.player.phase + 0.5); */
+/*     glBindBuffer(GL_ARRAY_BUFFER, vbo.handle); */
+/*     glEnableVertexAttribArray(0); */
+/*     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0); */
+/*     glDrawArrays(GL_QUADS, 0, vbo.size); */
+
+/*     set_uniform(shader, "scale", 2); */
+/*     set_uniform(shader, "ticks", ticks + 1200); */
+/*     set_uniform(shader, "phase", state.player.phase + 0.6); */
+/*     glDrawArrays(GL_QUADS, 0, vbo.size); */
+
+/*     set_uniform(shader, "scale", 1); */
+/*     set_uniform(shader, "ticks", ticks + 1000); */
+/*     set_uniform(shader, "phase", state.player.phase + 0.7); */
+/*     glDrawArrays(GL_QUADS, 0, vbo.size); */
+
+/*     glDisableVertexAttribArray(0); */
+/* } */
+
+void draw_player(const RenderArgs& args)
 {
-    GLuint shader = renderstate.shaders.viewport;
-    VBO vbo = renderstate.vbo.viewport;
-    glUseProgram(shader);
+    RS renderstate = args.rs;
+    GS state = args.gs;
 
-    // TODO figure out why can't set this prior to glUseProgram
-    set_uniform(renderstate.shaders.viewport, "value", 0.3); //darken
-
-    set_uniform(shader, "scale", 4);
-    set_uniform(shader, "ticks", ticks + 1400);
-    set_uniform(shader, "phase", state.player.phase + 0.5);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo.handle);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
-    glDrawArrays(GL_QUADS, 0, vbo.size);
-
-    set_uniform(shader, "scale", 2);
-    set_uniform(shader, "ticks", ticks + 1200);
-    set_uniform(shader, "phase", state.player.phase + 0.6);
-    glDrawArrays(GL_QUADS, 0, vbo.size);
-
-    set_uniform(shader, "scale", 1);
-    set_uniform(shader, "ticks", ticks + 1000);
-    set_uniform(shader, "phase", state.player.phase + 0.7);
-    glDrawArrays(GL_QUADS, 0, vbo.size);
-
-    glDisableVertexAttribArray(0);
-}
-
-void draw_player(GameState& state, u32 ticks)
-{
     GLuint shader = renderstate.shaders.player;
     glUseProgram(shader);
     set_uniform(shader, "offset", state.player.pos);
     set_uniform(shader, "rotation", state.player.rotation);
-    set_uniform(shader, "ticks", ticks);
+    set_uniform(shader, "ticks", args.ticks);
     set_uniform(shader, "phase", state.player.phase);
     float checkpoint = fabs(state.player.phase - 0.5) * 40;
     if (checkpoint < 1.0)
@@ -437,13 +459,17 @@ void draw_player(GameState& state, u32 ticks)
     set_uniform(shader, "offset", state.square.pos);
     set_uniform(shader, "scale", state.square.size);
     set_uniform(shader, "rotation", π / 4); // TODO does π character break stuff?
-    set_uniform(shader, "ticks", ticks);
+    set_uniform(shader, "ticks", args.ticks);
     set_uniform(shader, "phase", 0);
     draw_array(renderstate.vbo.square);
 }
 
-void draw_reticle(GameState& state, u32 ticks)
+void draw_reticle(const RenderArgs& args)
 {
+    RS renderstate = args.rs;
+    GS state = args.gs;
+    u32 ticks = args.ticks;
+
     GLuint shader = renderstate.shaders.reticle;
     glUseProgram(shader);
     set_uniform(shader, "offset", state.player.reticle);
@@ -457,11 +483,15 @@ void draw_reticle(GameState& state, u32 ticks)
     draw_array(renderstate.vbo.reticle);
 }
 
-void draw_entities(GameState& state, u32 ticks)
+void draw_entities(const RenderArgs& args)
 {
+    RS renderstate = args.rs;
+    GS state = args.gs;
+    u32 ticks = args.ticks;
+
     for (int i = 0; i < MAX_ENTITIES; ++i)
     {
-        Entity& e = state.entities[i];
+        const Entity& e = state.entities[i];
         if (e.life <= 0) continue;
 
         if (e.type == E_ROCKET)
@@ -531,38 +561,21 @@ void draw_entities(GameState& state, u32 ticks)
     }
 }
 
-void draw_glowy_things(GameState& state, u32 ticks)
+void draw_glowy_things(const RenderArgs& args)
 {
     // Render "player" triangle
-    draw_player(state, ticks);
+    draw_player(args);
 
     // Render reticle
-    draw_reticle(state, ticks);
+    draw_reticle(args);
 
     // Render bullets, enemies and turds
-    draw_entities(state, ticks);
+    draw_entities(args);
 }
 
-// Render a frame
-void render(GameState& state, u32 ticks, bool debug)
+void apply_two_pass_glow(const RenderState& renderstate)
 {
-
-    // TODO compress state+ticks into some param struct
-
-    glBindFramebuffer(GL_FRAMEBUFFER, renderstate.fbo.a.handle);
-    check_error("binding framebuf");
-
-    // Clear
-    glClear(GL_COLOR_BUFFER_BIT);
-    check_error("clearing to black");
-
-    // Render gameplay
-    draw_glowy_things(state, ticks);
-
-    // Glow filter
     glUseProgram(renderstate.shaders.post_blur); check_error("using program");
-    /* set_uniform(renderstate.shaders.post_blur, "texFramebuffer", renderstate.fbo.a.texture); check_error("setting texture uniform 1"); */
-
     glBindTexture(GL_TEXTURE_2D, renderstate.fbo.a.texture); check_error("binding texture here");
     use_framebuffer(renderstate.fbo.b);
     Vec uX = {1, 0};
@@ -580,8 +593,25 @@ void render(GameState& state, u32 ticks, bool debug)
     draw_array(renderstate.vbo.viewport, GL_QUADS); check_error("drawing");
     glUseProgram(0);
 
+}
+
+// Render a frame
+void render(GameState& state, u32 ticks, bool debug)
+{
+    RenderArgs args = { _params, state, _renderstate, ticks, debug };
+
+    // Clear
+    use_framebuffer(args.rs.fbo.a); check_error("binding framebuf");
+    glClear(GL_COLOR_BUFFER_BIT); check_error("clearing to black");
+
+    // Render gameplay
+    draw_glowy_things(args);
+
+    // Glow filter
+    apply_two_pass_glow(args.rs);
+
     // Render gameplay again
-    draw_glowy_things(state, ticks);
+    draw_glowy_things(args);
 
 
 }
