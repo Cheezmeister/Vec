@@ -159,16 +159,20 @@ RenderParams _params = {
 };
 
 // Check for GL errors
-void check_error(const string& message)
+void check_error(const string& message, bool debug=FORCE_DEBUG)
 {
     GLenum error = glGetError();
-    if (error)
+    if (error && debug)
     {
         logger << "Error " << message.c_str() << ": [" << error << "] ";
         switch (error)
         {
-          case 1282: logger << "invalid operation\n"; return;
-          default: logger << "unknown error\n"; return;
+        case 1282:
+            logger << "invalid operation\n";
+            return;
+        default:
+            logger << "unknown error\n";
+            return;
         }
     }
 }
@@ -198,12 +202,14 @@ FBO make_fbo(int width, int height)
     glBindTexture(GL_TEXTURE_2D, texture);
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT, NULL); check_error("teximage");
-    glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0); check_error("framebuftex");
+    glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
+    check_error("teximage");
+    glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
+    check_error("framebuftex");
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
     GLuint status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
     if (GL_FRAMEBUFFER_COMPLETE != status)
-      cerr << "ERROR Framebuffer is incomplete. Status was " << status << endl;
+        cerr << "ERROR Framebuffer is incomplete. Status was " << status << endl;
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     FBO ret;
@@ -338,7 +344,8 @@ GLuint make_shader(GLuint vertex, GLuint fragment)
 
 void use_framebuffer(const FBO& fbo)
 {
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo.handle); check_error("binding fbo");
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo.handle);
+    check_error("binding fbo");
 }
 
 void init()
@@ -346,30 +353,42 @@ void init()
     RenderState& renderstate = _renderstate;
 
     // Compile shaders
-    GLuint vs_noop = arcsynthesis::CreateShader(GL_VERTEX_SHADER, GLSL_VERSION
+    GLuint vs_noop = arcsynthesis::CreateShader
+                     (GL_VERTEX_SHADER, GLSL_VERSION
 #include "noop.vs"
-        );
-    GLuint vs_pulse = arcsynthesis::CreateShader(GL_VERTEX_SHADER, GLSL_VERSION
+                     );
+    GLuint vs_pulse = arcsynthesis::CreateShader
+                      (GL_VERTEX_SHADER, GLSL_VERSION
 #include "pulse.vs"
-        );
-    GLuint vs_wiggle = arcsynthesis::CreateShader(GL_VERTEX_SHADER, GLSL_VERSION
+                      );
+    GLuint vs_wiggle = arcsynthesis::CreateShader
+                       (GL_VERTEX_SHADER, GLSL_VERSION
 #include "wiggle.vs"
-        );
-    GLuint fs_scintillate = arcsynthesis::CreateShader(GL_FRAGMENT_SHADER, GLSL_VERSION
+                       );
+    GLuint fs_scintillate = arcsynthesis::CreateShader
+                            (GL_FRAGMENT_SHADER, GLSL_VERSION
 #include "scintillate.fs"
-                                                      );
-    GLuint fs_pulse = arcsynthesis::CreateShader(GL_FRAGMENT_SHADER, GLSL_VERSION
+                            );
+    GLuint fs_pulse = arcsynthesis::CreateShader
+                      (GL_FRAGMENT_SHADER, GLSL_VERSION
 #include "pulse.fs"
-                                                );
-    GLuint fs_circle = arcsynthesis::CreateShader(GL_FRAGMENT_SHADER, GLSL_VERSION
+                      );
+    GLuint fs_circle = arcsynthesis::CreateShader
+                       (GL_FRAGMENT_SHADER, GLSL_VERSION
 #include "circle.fs"
-                                                 );
-    GLuint fs_glow = arcsynthesis::CreateShader(GL_FRAGMENT_SHADER, GLSL_VERSION
+                       );
+    GLuint fs_glow = arcsynthesis::CreateShader
+                     (GL_FRAGMENT_SHADER, GLSL_VERSION
 #include "glow.fs"
-        );
-    GLuint fs_fade = arcsynthesis::CreateShader(GL_FRAGMENT_SHADER, GLSL_VERSION
+                     );
+    GLuint fs_fade = arcsynthesis::CreateShader
+                     (GL_FRAGMENT_SHADER, GLSL_VERSION
 #include "fade.fs"
-        );
+                     );
+    GLuint fs_swirl = arcsynthesis::CreateShader
+                      (GL_FRAGMENT_SHADER, GLSL_VERSION
+#include "swirl.fs"
+                      );
 
 
     // Set up VBO
@@ -392,7 +411,7 @@ void init()
     renderstate.shaders.player = make_shader(vs_pulse, fs_scintillate);
     renderstate.shaders.reticle = make_shader(vs_pulse, fs_scintillate);
     renderstate.shaders.enemy = make_shader(vs_wiggle, fs_pulse);
-    renderstate.shaders.viewport = make_shader(vs_pulse, fs_scintillate);
+    renderstate.shaders.viewport = make_shader(vs_noop, fs_swirl);
     renderstate.shaders.turd = make_shader(vs_pulse, fs_scintillate);
     renderstate.shaders.nova = make_shader(vs_pulse, fs_circle);
     renderstate.shaders.xpchunk = make_shader(vs_pulse, fs_pulse);
@@ -408,35 +427,14 @@ void init()
 
 }
 
-/* void draw_background(GameState& state, u32 ticks) */
-/* { */
-/*     GLuint shader = renderstate.shaders.viewport; */
-/*     VBO vbo = renderstate.vbo.viewport; */
-/*     glUseProgram(shader); */
-
-/*     // TODO figure out why can't set this prior to glUseProgram */
-/*     set_uniform(renderstate.shaders.viewport, "value", 0.3); //darken */
-
-/*     set_uniform(shader, "scale", 4); */
-/*     set_uniform(shader, "ticks", ticks + 1400); */
-/*     set_uniform(shader, "phase", state.player.phase + 0.5); */
-/*     glBindBuffer(GL_ARRAY_BUFFER, vbo.handle); */
-/*     glEnableVertexAttribArray(0); */
-/*     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0); */
-/*     glDrawArrays(GL_QUADS, 0, vbo.size); */
-
-/*     set_uniform(shader, "scale", 2); */
-/*     set_uniform(shader, "ticks", ticks + 1200); */
-/*     set_uniform(shader, "phase", state.player.phase + 0.6); */
-/*     glDrawArrays(GL_QUADS, 0, vbo.size); */
-
-/*     set_uniform(shader, "scale", 1); */
-/*     set_uniform(shader, "ticks", ticks + 1000); */
-/*     set_uniform(shader, "phase", state.player.phase + 0.7); */
-/*     glDrawArrays(GL_QUADS, 0, vbo.size); */
-
-/*     glDisableVertexAttribArray(0); */
-/* } */
+void draw_background(const RenderArgs& args)
+{
+    GLuint shader = args.rs.shaders.viewport;
+    VBO vbo = args.rs.vbo.viewport;
+    glUseProgram(shader);
+    set_uniform(shader, "ticks", args.ticks);
+    draw_array(vbo, GL_QUADS);
+}
 
 void draw_player(const RenderArgs& args)
 {
@@ -575,22 +573,24 @@ void draw_glowy_things(const RenderArgs& args)
 
 void apply_two_pass_glow(const RenderState& renderstate)
 {
-    glUseProgram(renderstate.shaders.post_blur); check_error("using program");
-    glBindTexture(GL_TEXTURE_2D, renderstate.fbo.a.texture); check_error("binding texture here");
+    glUseProgram(renderstate.shaders.post_blur);
+    glBindTexture(GL_TEXTURE_2D, renderstate.fbo.a.texture);
     use_framebuffer(renderstate.fbo.b);
     Vec uX = {1, 0};
-    set_uniform(renderstate.shaders.post_blur, "texSource", renderstate.fbo.a.texture); check_error("setting texture uniform 2");
-    set_uniform(renderstate.shaders.post_blur, "dir", uX); check_error("setting direction");
-    set_uniform(renderstate.shaders.post_blur, "textureSize", renderstate.fbo.a.width); check_error("setting direction");
-    draw_array(renderstate.vbo.viewport, GL_QUADS); check_error("drawing");
+    set_uniform(renderstate.shaders.post_blur, "texSource", renderstate.fbo.a.texture);
+    check_error("setting texture uniform 2");
+    set_uniform(renderstate.shaders.post_blur, "dir", uX);
+    set_uniform(renderstate.shaders.post_blur, "textureSize", renderstate.fbo.a.width);
+    draw_array(renderstate.vbo.viewport, GL_QUADS);
 
-    glBindTexture(GL_TEXTURE_2D, renderstate.fbo.b.texture); check_error("binding texture here");
+    glBindTexture(GL_TEXTURE_2D, renderstate.fbo.b.texture);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     Vec uY = {0, 1};
-    set_uniform(renderstate.shaders.post_blur, "texSource", renderstate.fbo.b.texture); check_error("setting texture uniform 3");
+    set_uniform(renderstate.shaders.post_blur, "texSource", renderstate.fbo.b.texture);
+    check_error("setting texture uniform 3");
     set_uniform(renderstate.shaders.post_blur, "dir", uY);
-    set_uniform(renderstate.shaders.post_blur, "textureSize", renderstate.fbo.a.height); check_error("setting direction");
-    draw_array(renderstate.vbo.viewport, GL_QUADS); check_error("drawing");
+    set_uniform(renderstate.shaders.post_blur, "textureSize", renderstate.fbo.a.height);
+    draw_array(renderstate.vbo.viewport, GL_QUADS);
     glUseProgram(0);
 
 }
@@ -601,13 +601,18 @@ void render(GameState& state, u32 ticks, bool debug)
     RenderArgs args = { _params, state, _renderstate, ticks, debug };
 
     // Clear
-    use_framebuffer(args.rs.fbo.a); check_error("binding framebuf");
-    glClear(GL_COLOR_BUFFER_BIT); check_error("clearing to black");
+    use_framebuffer(args.rs.fbo.a);
+    check_error("binding framebuf");
+    glClear(GL_COLOR_BUFFER_BIT);
+    check_error("clearing to black");
+
+    // Render background
+    draw_background(args);
 
     // Render gameplay
     draw_glowy_things(args);
 
-    // Glow filter
+    // Glow filter to screen
     apply_two_pass_glow(args.rs);
 
     // Render gameplay again

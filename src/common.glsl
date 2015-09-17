@@ -3,6 +3,8 @@
 #define STRINGIFY(glsl) #glsl
 
 STRINGIFY(
+const float mPI = 3.14159;
+
 float ncos(float a) {
     return 0.5 + cos(a)/2;
 }

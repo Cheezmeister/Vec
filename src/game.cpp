@@ -116,8 +116,8 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
     state.player.vel += t;
     state.player.pos += state.player.vel;
     state.player.vel = state.player.vel * params.drag;
-    float phase = ticks / 1000.0 * params.frequency;
-    phase -= floor(phase);
+    float phase = ticks / 1000.0 * beats_per_minute(state) / pow(2, 8);
+    phase -= floor(phase); // keep phase between 0-1
     state.player.phase = phase;
 
     // Update square

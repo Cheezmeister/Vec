@@ -12,6 +12,14 @@
 
 const float π = M_PI;
 
+#ifndef FORCE_DEBUG 
+#ifdef DEBUG
+const int FORCE_DEBUG = true;
+#else
+const int FORCE_DEBUG = false;
+#endif
+#endif
+
 #define DEBUGVAR(x) bml::logger << #x " is " << x << std::endl;
 const char ESCAPE = '\e';
 

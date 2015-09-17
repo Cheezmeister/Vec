@@ -10,7 +10,6 @@ STRINGIFY(
     uniform float ticks;
     uniform float scale = 1;
     const float frequency = 2;
-    const float mPI = 3.14159;
 
 void main() {
     vec2 rotated;

@@ -1,6 +1,6 @@
 /* This file is (ab)used by the C preprocessor
    to embed shaders in gfx.cpp at compile time. */
-#define STRINGIFY(glsl) #glsl
+#include "common.glsl"
 
 STRINGIFY(
     attribute vec4 inPos;
@@ -10,7 +10,7 @@ STRINGIFY(
     uniform float scale = 1;
     varying vec4 glPos;
     const float frequency = 2;
-    const float mPI = 3.14159;
+
 void main() {
     vec2 rotated;
     rotated.x = inPos.x * cos(rotation) - inPos.y * sin(rotation);

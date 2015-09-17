@@ -6,7 +6,6 @@ STRINGIFY(
     varying vec4 glPos;
     uniform float phase;
     uniform float value = 1.0;
-    const float mPI = 3.14159;
 
 void main() {
     float h = nsin(phase * mPI);

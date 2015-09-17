@@ -7,7 +7,6 @@ STRINGIFY(
     uniform float ticks;
     uniform float a = 1.0;
     uniform float hue = 0.5;
-    const float mPI = 3.14159;
 
 void main() {
     float phase = ticks * 1 / 1000.0;

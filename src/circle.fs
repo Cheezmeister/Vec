@@ -9,7 +9,6 @@ STRINGIFY(
     uniform vec2 center;
     uniform float radius;
     uniform float thickness = 0.1;
-    const float mPI = 3.14159;
 
 void main() {
     float h = nsin(phase * mPI);
