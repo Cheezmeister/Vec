@@ -10,6 +10,10 @@
 #define M_PI 3.1415926536
 #endif
 
+#define RETURN_IF_NONZERO(do_something) \
+  int _code = do_something; if (code) return code
+
+
 const float π = M_PI;
 
 #ifndef FORCE_DEBUG 

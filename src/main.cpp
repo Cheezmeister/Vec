@@ -5,6 +5,10 @@
 #include "SDL.h"
 #include "vec.h"
 
+#if USE_EMSCRIPTEN
+#include "emscripten.h"
+#endif
+
 ////////////////////////////////////////////////////////////////////////////////
 using namespace std;
 
@@ -15,21 +19,22 @@ typedef struct _Args {
     bool mute;
 } Args;
 
-typedef struct _Dimension2 {
-    float x;
-    float y;
-} Dimension2;
-
 // Commandline arguments
 Args args;
 
 // Window management
 bool fullscreen = false;
 SDL_Window* win;
-Dimension2 viewport;
+
+// Gameplay
+GameState state = {0};
+SDL_GLContext context = {0};
+
 
 // Forward
-void update();
+void _update();
+int _setup();
+void _cleanup();
 
 int parse_args(int argc, char** argv, Args* outArgs)
 {
@@ -98,12 +103,8 @@ void print_info()
     printf("GLEW version: %s\n", glewGetString(GLEW_VERSION));
 }
 
-GameState state = {0};
-
 void loop()
 {
-
-
     game::init(state);
     gfx::init();
     audio::init(SDL_GetTicks());
@@ -112,12 +113,9 @@ void loop()
     SDL_ShowCursor(SDL_DISABLE);
 
     u32 FPS = 50;
-
 #if __EMSCRIPTEN__
-    emscripten_set_main_loop(update, FPS, false);
+    emscripten_set_main_loop(_update, FPS, false);
     return;
-#else
-#error Dagnabbit
 #endif
 
     // TODO un-hard-code FPS and BPM
@@ -125,7 +123,7 @@ void loop()
     {
 
         u32 ticks = SDL_GetTicks();
-        update();
+        _update();
 
         // Finish frame
         u32 next = ticks + 1000 / FPS;
@@ -133,10 +131,87 @@ void loop()
         if (next > now)
             SDL_Delay(next - now);
     }
-    input::cleanup();
 }
 
-void update()
+int _setup()
+{
+    // Fire up SDL
+    if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
+    {
+        cerr << "Couldn't init SDL";
+        return 1;
+    }
+
+    // Open a window
+    struct _Dimension2 {
+        float x;
+        float y;
+    } viewport;
+    viewport.x = 400;
+    viewport.y = 400;
+    Uint32 flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
+#ifdef DEBUG
+    if (args.fullscreen)
+#else
+    if (!args.windowed)
+#endif
+    {
+        SDL_DisplayMode dm;
+        if (SDL_GetDesktopDisplayMode(0, &dm) != 0)
+        {
+            fprintf(stderr, "SDL_GetDesktopDisplayMode failed: %s", SDL_GetError());
+        }
+        else
+        {
+            viewport.x = dm.w;
+            viewport.y = dm.h;
+            flags |= SDL_WINDOW_FULLSCREEN;
+        }
+    }
+    win = SDL_CreateWindow("Vec", 0, 0, viewport.x, viewport.y, flags);
+    if (win == NULL)
+    {
+        cerr << "Couldn't set video mode";
+        return 2;
+    }
+
+    if (args.mute)
+    {
+        SDL_PauseAudio(1); // HACK TODO volume control
+    }
+
+    SDL_SetWindowPosition(win, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+    SDL_SetRelativeMouseMode(SDL_TRUE);
+
+    // Massage OpenGL
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    context = SDL_GL_CreateContext(win);
+    if (context == NULL)
+    {
+        cerr << "Couldn't get a gl context: " << SDL_GetError();
+        return 3;
+    }
+
+    // Massage GL some more
+    GLenum err = glewInit();
+    if (GLEW_OK != err)
+    {
+        fprintf(stderr, "Error: %s\n", glewGetErrorString(err));
+        return 4;
+    }
+    return 0;
+}
+
+void _cleanup()
+{
+    input::cleanup();
+    SDL_GL_DeleteContext(context);
+    SDL_Quit();
+}
+
+void _update()
 {
     // Timing
     u32 ticks = SDL_GetTicks();
@@ -194,77 +269,13 @@ int main(int argc, char** argv)
 
     srand(time(NULL));
 
-    // Fire up SDL
-    if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
-    {
-        cerr << "Couldn't init SDL";
-        return 1;
-    }
-
-    // Open a window
-    viewport.x = 400;
-    viewport.y = 400;
-    Uint32 flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
-#ifdef DEBUG
-    if (args.fullscreen)
-#else
-    if (!args.windowed)
-#endif
-    {
-        SDL_DisplayMode dm;
-        if (SDL_GetDesktopDisplayMode(0, &dm) != 0)
-        {
-            fprintf(stderr, "SDL_GetDesktopDisplayMode failed: %s", SDL_GetError());
-        }
-        else
-        {
-            viewport.x = dm.w;
-            viewport.y = dm.h;
-            flags |= SDL_WINDOW_FULLSCREEN;
-        }
-    }
-    win = SDL_CreateWindow("Vec", 0, 0, viewport.x, viewport.y, flags);
-    if (win == NULL)
-    {
-        cerr << "Couldn't set video mode";
-        return 2;
-    }
-
-    if (args.mute)
-    {
-        SDL_PauseAudio(1); // HACK TODO volume control
-    }
-
-    SDL_SetWindowPosition(win, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-    SDL_SetRelativeMouseMode(SDL_TRUE);
-
-    // Massage OpenGL
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    SDL_GLContext context = SDL_GL_CreateContext(win);
-    if (context == NULL)
-    {
-        cerr << "Couldn't get a gl context: " << SDL_GetError();
-        return 3;
-    }
-
-    // Massage GL some more
-    GLenum err = glewInit();
-    if (GLEW_OK != err)
-    {
-        fprintf(stderr, "Error: %s\n", glewGetErrorString(err));
-        return 4;
-    }
+    RETURN_IF_NONZERO(_setup());
 
     print_info();
-
-
 
     loop();
 
     // Clean up and gtfo
-    SDL_GL_DeleteContext(context);
-    SDL_Quit();
+    _cleanup();
     return 0;
 }

@@ -70,7 +70,7 @@ Input handle_input()
             bool left2; // left-click, right mouse
             bool right2; // right-click, right mouse
         } button;
-    } state;
+    } mmstate;
 
     // SDL events
     SDL_Event event;
@@ -101,6 +101,7 @@ Input handle_input()
 #endif
     }
 
+#ifndef USE_EMSCRIPTEN
     // ManyMouse events
     ManyMouseEvent mme;
     while (ManyMouse_PollEvent(&mme))
@@ -123,8 +124,8 @@ Input handle_input()
             bool xaxis = ( mme.item == 0 );
             bool yaxis = !xaxis;
             float& axis = xaxis ?
-                          (mme.device == leftmouse ? ret.axes.x3 : state.axes.x2) :
-                          (mme.device == leftmouse ? ret.axes.y3 : state.axes.y2);
+                          (mme.device == leftmouse ? ret.axes.x3 : mmstate.axes.x2) :
+                          (mme.device == leftmouse ? ret.axes.y3 : mmstate.axes.y2);
             float value = mme.value / 400.0f; //(float)bml::maximum(viewport.x, viewport.y);
             if (yaxis) value = -value;
             axis += value;
@@ -142,18 +143,19 @@ Input handle_input()
             else
             {
                 if (mme.item == 0)
-                    state.button.left1 = pressed;
+                    mmstate.button.left1 = pressed;
                 else if (mme.item == 1)
-                    state.button.right1 = pressed;
+                    mmstate.button.right1 = pressed;
             }
         }
     }
+#endif
 
     // Process MM state
-    ret.axes.x2 += state.axes.x2;
-    ret.axes.y2 += state.axes.y2;
-    ret.shoot |= state.button.left1;
-    ret.poop |= state.button.right1;
+    ret.axes.x2 += mmstate.axes.x2;
+    ret.axes.y2 += mmstate.axes.y2;
+    ret.shoot |= mmstate.button.left1;
+    ret.poop |= mmstate.button.right1;
 
     // Poll keyboard
     const Uint8* keystate = SDL_GetKeyboardState(NULL);

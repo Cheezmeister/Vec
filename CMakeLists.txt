@@ -30,10 +30,15 @@ cmake_policy(VERSION 2.8)
 project(${PROJECT_NAME} )
 
 option(USE_EMSCRIPTEN "Set this true if deploying to JS with emscripten" OFF)
+if (CMAKE_C_COMPILER MATCHES "emcc")
+  set(USE_EMSCRIPTEN ON)
+endif()
 
 #Find required tools (SDL, GL, GLEW)
 if (USE_EMSCRIPTEN)
-
+  list(APPEND EXTRA_INCLUDE_DIRECTORIES "/usr/local/Cellar/emscripten/1.22.1/libexec/system/include" )
+  set(COMPILE_FLAGS  "-DEXPORTED_FUNCTIONS=\"['_js_setup', '_js_cleanup', '_js_update']\"")
+  set(APP_SUFFIX "js")
 else()
   find_package(SDL REQUIRED)
   find_package(OpenGL REQUIRED)
@@ -92,6 +97,8 @@ endif()
 set_target_properties(${APP_NAME} PROPERTIES
   OUTPUT_NAME "${APP_NAME}-${VERSION_STRING}-${APP_SUFFIX}"
 )
+
+set(CMAKE_CXX_FLAGS ${COMPILE_FLAGS} ${CMAKE_CXX_FLAGS} )
 
 target_link_libraries(${APP_NAME} ${LINKED_LIBS})
 include_directories(${EXTRA_INCLUDE_DIRECTORIES})
