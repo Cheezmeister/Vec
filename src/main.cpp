@@ -30,7 +30,6 @@ SDL_Window* win;
 GameState state = {0};
 SDL_GLContext context = {0};
 
-
 // Forward
 void _update();
 int _setup();
@@ -112,6 +111,11 @@ void loop()
 
     SDL_ShowCursor(SDL_DISABLE);
 
+    if (args.mute)
+    {
+        SDL_PauseAudio(1); // HACK TODO volume control
+    }
+
     u32 FPS = 50;
 #if __EMSCRIPTEN__
     emscripten_set_main_loop(_update, FPS, false);
@@ -173,11 +177,6 @@ int _setup()
     {
         cerr << "Couldn't set video mode";
         return 2;
-    }
-
-    if (args.mute)
-    {
-        SDL_PauseAudio(1); // HACK TODO volume control
     }
 
     SDL_SetWindowPosition(win, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
