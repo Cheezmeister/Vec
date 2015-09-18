@@ -7,8 +7,8 @@ namespace game {
 
 // TODO cleanup this initialization
 struct _GameParams {
-    float movespeed,  squarespeed, mousemovespeed, rotspeed, drag, bulletdrag, bulletspeed, enemyspeed, hitbox, frequency, squaregrowth, squaregravity ;
-} params = {   0.005,        0.01,       20.0,             6,  0.9,      0.97,          0.03, 0.01,       0.005,  30.0 / 60.0 / 4.0, 1.01, 0.02 };
+    float movespeed,  squarespeed, mousemovespeed, rotspeed, drag, bulletdrag, bulletspeed, enemyspeed, hitbox, squaregrowth, squaregravity, squaredecay;
+} params = {   0.005,        0.01,       20.0,            6,  0.9,      0.97,          0.03, 0.01,       0.005, 1.01,        0.02, 0.995 };
 
 void collide(GameState& state, const GameState& previousState);
 void add_entity(GameState& state, Entity& e);
@@ -116,14 +116,15 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
     state.player.vel += t;
     state.player.pos += state.player.vel;
     state.player.vel = state.player.vel * params.drag;
-    float phase = ticks / 1000.0 * beats_per_minute(state) / pow(2, 8);
+
+    float phase = ticks / 1000.0 * beats_per_minute(state) / pow(2, 10);
     phase -= floor(phase); // keep phase between 0-1
     state.player.phase = phase;
 
     // Update square
     if (state.square.size > 1)
     {
-        state.square.size *= 0.995;
+        state.square.size *= params.squaredecay;
     }
 
     // Process entities

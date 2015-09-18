@@ -105,6 +105,7 @@ typedef struct _RenderState {
     struct _Shaders {
         GLuint enemy;
         GLuint player;
+        GLuint square;
         GLuint reticle;
         GLuint turd;
         GLuint viewport;
@@ -409,13 +410,15 @@ void init()
 
     // Init shaders
     renderstate.shaders.player = make_shader(vs_pulse, fs_scintillate);
+    renderstate.shaders.square = make_shader(vs_pulse, fs_scintillate);
     renderstate.shaders.reticle = make_shader(vs_pulse, fs_scintillate);
+
     renderstate.shaders.enemy = make_shader(vs_wiggle, fs_pulse);
-    renderstate.shaders.viewport = make_shader(vs_noop, fs_swirl);
     renderstate.shaders.turd = make_shader(vs_pulse, fs_scintillate);
     renderstate.shaders.nova = make_shader(vs_pulse, fs_circle);
     renderstate.shaders.xpchunk = make_shader(vs_pulse, fs_pulse);
     renderstate.shaders.post_blur = make_shader(vs_noop, fs_glow);
+    renderstate.shaders.viewport = make_shader(vs_noop, fs_swirl);
 
     // Framebuffers
     renderstate.fbo.a = make_fbo(400, 400);
@@ -436,7 +439,7 @@ void draw_background(const RenderArgs& args)
     draw_array(vbo, GL_QUADS);
 }
 
-void draw_player(const RenderArgs& args)
+void draw_triangle(const RenderArgs& args)
 {
     RS renderstate = args.rs;
     GS state = args.gs;
@@ -447,18 +450,27 @@ void draw_player(const RenderArgs& args)
     set_uniform(shader, "rotation", state.player.rotation);
     set_uniform(shader, "ticks", args.ticks);
     set_uniform(shader, "phase", state.player.phase);
-    float checkpoint = fabs(state.player.phase - 0.5) * 40;
+    set_uniform(shader, "value", 1);
+    float checkpoint = fabs(state.player.phase - 0.5) * 12;
     if (checkpoint < 1.0)
         set_uniform(shader, "value", checkpoint);
     set_uniform(shader, "scale", state.player.size);
     draw_array(renderstate.vbo.player);
 
+}
 
+void draw_square(const RenderArgs& args)
+{
+    RS renderstate = args.rs;
+    GS state = args.gs;
+
+    GLuint shader = renderstate.shaders.square;
+    glUseProgram(shader);
     set_uniform(shader, "offset", state.square.pos);
-    set_uniform(shader, "scale", state.square.size);
-    set_uniform(shader, "rotation", π / 4); // TODO does π character break stuff?
+    set_uniform(shader, "rotation", π / 4);
     set_uniform(shader, "ticks", args.ticks);
-    set_uniform(shader, "phase", 0);
+    set_uniform(shader, "phase", 0.5 + state.player.phase);
+    set_uniform(shader, "scale", state.square.size);
     draw_array(renderstate.vbo.square);
 }
 
@@ -472,12 +484,16 @@ void draw_reticle(const RenderArgs& args)
     glUseProgram(shader);
     set_uniform(shader, "offset", state.player.reticle);
     set_uniform(shader, "rotation", ticks / 1000.0f);
-    set_uniform(shader, "phase", state.player.phase);
-    float checkpoint = fabs(state.player.phase - 0.5) * 40;
+    set_uniform(shader, "phase", 0.02 + state.player.phase);
+    set_uniform(shader, "ticks", ticks);
+    set_uniform(shader, "scale", 1.05);
+    set_uniform(shader, "value", 0);
+    draw_array(renderstate.vbo.reticle);
+    set_uniform(shader, "scale", 1);
+    set_uniform(shader, "value", 1);
+    float checkpoint = fabs(state.player.phase - 0.5) * 20;
     if (checkpoint < 1.0)
         set_uniform(shader, "value", checkpoint);
-    set_uniform(shader, "ticks", ticks);
-    set_uniform(shader, "scale", 1);
     draw_array(renderstate.vbo.reticle);
 }
 
@@ -561,14 +577,11 @@ void draw_entities(const RenderArgs& args)
 
 void draw_glowy_things(const RenderArgs& args)
 {
-    // Render "player" triangle
-    draw_player(args);
-
-    // Render reticle
+    // Render "player" items
+    draw_triangle(args);
+    draw_square(args);
     draw_reticle(args);
 
-    // Render bullets, enemies and turds
-    draw_entities(args);
 }
 
 void apply_two_pass_glow(const RenderState& renderstate)
@@ -618,6 +631,8 @@ void render(GameState& state, u32 ticks, bool debug)
     // Render gameplay again
     draw_glowy_things(args);
 
+    // Render bullets, enemies and turds
+    draw_entities(args);
 
 }
 

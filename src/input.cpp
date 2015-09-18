@@ -83,7 +83,7 @@ Input handle_input()
             if (sym == SDLK_ESCAPE) ret.sys.quit = true;
             if (sym == SDLK_f     ) ret.sys.fullscreen = true;
             if (sym == SDLK_LSHIFT) ret.auxpoop = true;
-            if (sym == SDLK_r     ) ret.auxpoop = true;
+            if (sym == SDLK_r     ) ret.auxshoot = true;
         }
 
 #ifndef USE_EMSCRIPTEN
