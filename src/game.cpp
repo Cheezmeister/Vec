@@ -12,6 +12,7 @@ struct _GameParams {
 
 void collide(GameState& state, const GameState& previousState);
 void add_entity(GameState& state, Entity& e);
+void attract_entity(GameState& state, Entity& e);
 void destroy_entity(GameState& state, Entity& e);
 void spawn_enemies(GameState& state);
 
@@ -137,6 +138,7 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
         {
         // Bullets/Rockets
         case E_BULLET:
+            attract_entity(state, e);
         case E_ROCKET:
             e.life -= 0.002;
             if (e.life < 0.95)
@@ -166,11 +168,7 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
             if (e.pos.y > 1.0) e.pos.y -= 2.0;
 
             // Attract
-            if (state.square.attract)
-            {
-                bml::Vec offset = e.pos - state.square.pos;
-                e.pos -= offset * params.squaregravity;
-            }
+            attract_entity(state, e);
             continue;
 
         default:
@@ -190,7 +188,8 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
 // (Re)spawn enemies
 void spawn_enemies(GameState& state)
 {
-    for (int i = 0; i < MAX_ENEMIES; ++i)
+    int count = min(state.player.killcount + 1, MAX_ENEMIES);
+    for (int i = 0; i < count; ++i)
     {
         Entity e = {0};
         e.type = E_ENEMY;
@@ -287,14 +286,12 @@ void destroy_entity(GameState& state, Entity& e)
             add_entity(state, xp);
         }
     }
-    else if (e.type == E_XPCHUNK)
+
+    if (entity_count(state) == 0)
     {
-        if (entity_count(state) == 0)
-        {
-            state.player.killcount = 0;
-            state.player.size = 1;
-            spawn_enemies(state);
-        }
+        spawn_enemies(state);
+        state.player.killcount = 0;
+        state.player.size = 1;
     }
 }
 
@@ -377,7 +374,7 @@ void collide(GameState& state, const GameState& previousState)
             {
                 state.square.pos = previousState.square.pos;
             }
-            if (e.type == E_ENEMY) // turds block square
+            if (e.type == E_ENEMY) // enemies block square
             {
                 e.vel = -e.vel;
                 bml::negate(e.vel);
@@ -403,6 +400,16 @@ void collide(GameState& state, const GameState& previousState)
                     state.player.size *= 0.5;
             }
         }
+    }
+}
+
+void attract_entity(GameState& state, Entity& e)
+{
+    if (state.square.attract)
+    {
+        bml::Vec offset = e.pos - state.square.pos;
+        e.pos -= offset * params.squaregravity;
+        e.vel -= 0.01 * offset * params.squaregravity;
     }
 }
 
