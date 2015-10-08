@@ -76,9 +76,11 @@ typedef struct _GameState {
 
 typedef struct _Input {
 
+    // System-y actions
     struct _Sys {
         bool quit;
         bool fullscreen;
+        bool glowtoggle;
     } sys;
 
     // Normalized (-1.0 <-> 1.0) axes
@@ -107,7 +109,7 @@ static float beats_per_minute(const GameState& state)
 namespace gfx
 {
 void init();
-void render(GameState& state, u32 ticks, bool debug);
+void render(GameState& state, u32 ticks, bool debug, const Input& input);
 void set_viewport(int x, int y);
 }
 

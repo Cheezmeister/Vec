@@ -16,10 +16,10 @@ void main() {
     rotated.x = inPos.x * cos(rotation) - inPos.y * sin(rotation);
     rotated.y = inPos.x * sin(rotation) + inPos.y * cos(rotation);
     float phase = ticks * frequency / 1000.0;
-    vec2 pos = rotated * (0.2 + 0.02 * sin(phase * mPI));
+    vec2 pos = rotated * (1 + 0.02 * sin(phase * mPI));
     pos *= scale;
-    pos.x += 0.02 * (inPos.x - inPos.y) * cos(phase * mPI);
-    pos.y += 0.02 * (inPos.x - inPos.y) * sin(phase * mPI);
+    pos.x += 0.2 * (inPos.x - inPos.y) * cos(phase * mPI);
+    pos.y += 0.2 * (inPos.x - inPos.y) * sin(phase * mPI);
     gl_Position = glPos = vec4(offset + pos, 0, 1);
 }
 )

@@ -394,10 +394,10 @@ void init()
 
     // Set up VBO
     renderstate.vbo.player = make_polygon_vbo(3, 0.0, 0.5);
-    renderstate.vbo.square = make_polygon_vbo(4, 0.3, 0.5);
+    renderstate.vbo.square = make_polygon_vbo(4, 0.0, 0.5 * ROOT_2);
     renderstate.vbo.nova = make_polygon_vbo(3, 0.48, 0.5);
-    renderstate.vbo.reticle = make_polygon_vbo(5, 0.3, 0.4);
-    renderstate.vbo.enemy = make_polygon_vbo(6, 0.1, 0.3);
+    renderstate.vbo.reticle = make_polygon_vbo(5, 0.09, 0.12);
+    renderstate.vbo.enemy = make_polygon_vbo(6, 0.03, 0.09);
 
     VertexBuffer<4> viewportVertices = {
         -1, 1, 0, 1,
@@ -515,7 +515,7 @@ void draw_entities(const RenderArgs& args)
             set_uniform(shader, "offset", e.pos);
             set_uniform(shader, "rotation", e.rotation);
             set_uniform(shader, "ticks", ticks);
-            set_uniform(shader, "scale", 1);
+            set_uniform(shader, "scale", state.player.size);
             draw_array(renderstate.vbo.player);
         }
         if (e.type == E_BULLET)
@@ -525,7 +525,7 @@ void draw_entities(const RenderArgs& args)
             set_uniform(shader, "offset", e.pos);
             set_uniform(shader, "ticks", ticks);
             set_uniform(shader, "rotation", ticks / 100.0f);
-            set_uniform(shader, "scale", 0.2);
+            set_uniform(shader, "scale", state.player.size * 0.1);
             draw_array(renderstate.vbo.player);
         }
         if (e.type == E_TURD)
@@ -533,9 +533,10 @@ void draw_entities(const RenderArgs& args)
             GLuint shader = renderstate.shaders.turd;
             glUseProgram(shader);
             set_uniform(shader, "offset", e.pos);
-            set_uniform(shader, "scale", 0.2 + 0.5 * (1.0 - e.life));
+            set_uniform(shader, "scale", 0.04 + 0.01 * (1.0 - e.life));
             set_uniform(shader, "rotation", e.rotation);
             set_uniform(shader, "ticks", ticks);
+            set_uniform(shader, "phase", 0.5 - state.player.phase);
             draw_array(renderstate.vbo.player);
         }
         if (e.type == E_NOVA)
@@ -556,7 +557,7 @@ void draw_entities(const RenderArgs& args)
             glUseProgram(shader);
             set_uniform(shader, "offset", e.pos);
             set_uniform(shader, "rotation", 0.0);
-            set_uniform(shader, "scale", 0.2);
+            set_uniform(shader, "scale", 0.3);
             set_uniform(shader, "ticks", ticks);
             set_uniform(shader, "hue", e.hue);
             draw_array(renderstate.vbo.enemy);
@@ -567,7 +568,7 @@ void draw_entities(const RenderArgs& args)
             glUseProgram(shader);
             set_uniform(shader, "offset", e.pos);
             set_uniform(shader, "rotation", ticks / 400.0f);
-            set_uniform(shader, "scale", 0.6);
+            set_uniform(shader, "scale", 0.9);
             set_uniform(shader, "ticks", ticks);
             set_uniform(shader, "hue", e.hue);
             draw_array(renderstate.vbo.enemy);
@@ -609,15 +610,20 @@ void apply_two_pass_glow(const RenderState& renderstate)
 }
 
 // Render a frame
-void render(GameState& state, u32 ticks, bool debug)
+void render(GameState& state, u32 ticks, bool debug, const Input& input)
 {
     RenderArgs args = { _params, state, _renderstate, ticks, debug };
 
+    static bool glow = false;
+    glow ^= input.sys.glowtoggle;
+
     // Clear
-    use_framebuffer(args.rs.fbo.a);
-    check_error("binding framebuf");
+    if (glow)
+    { 
+        use_framebuffer(args.rs.fbo.a);
+    }
+
     glClear(GL_COLOR_BUFFER_BIT);
-    check_error("clearing to black");
 
     // Render background
     draw_background(args);
@@ -625,11 +631,12 @@ void render(GameState& state, u32 ticks, bool debug)
     // Render gameplay
     draw_glowy_things(args);
 
-    // Glow filter to screen
-    apply_two_pass_glow(args.rs);
-
-    // Render gameplay again
-    draw_glowy_things(args);
+    // Glow filter to screen; Render gameplay again
+    if (glow) 
+    {
+        apply_two_pass_glow(args.rs);
+        draw_glowy_things(args);
+    }
 
     // Render bullets, enemies and turds
     draw_entities(args);

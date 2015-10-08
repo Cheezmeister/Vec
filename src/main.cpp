@@ -243,7 +243,7 @@ void _update()
 
     // Render graphics
     before = SDL_GetTicks();
-    gfx::render(state, ticks, args.debug);
+    gfx::render(state, ticks, args.debug, input);
     after = SDL_GetTicks();
     /* cerr << "Render took " << (after - before) << endl; */
 

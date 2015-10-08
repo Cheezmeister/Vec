@@ -11,10 +11,12 @@
 #endif
 
 #define RETURN_IF_NONZERO(do_something) \
-  int _code = do_something; if (code) return code
+  { int _code = do_something; if (code) return code; }
 
 
 const float π = M_PI;
+const float ROOT_2   = 1.4142135623731;
+const float ROOT_2_2 = 0.707106781186548;
 
 #ifndef FORCE_DEBUG 
 #ifdef DEBUG
@@ -36,8 +38,16 @@ static std::ostream& logger = std::cerr;
 typedef struct _Vec {
     float x;
     float y;
-
 } Vec;
+
+const Vec UNIT_X = { 1, 0 };
+const Vec UNIT_Y = { 0, 1 };
+
+// http://stackoverflow.com/q/563198
+static float cross(const Vec& lhs, const Vec& rhs)
+{
+    return lhs.x * rhs.y - rhs.x * lhs.y;
+}
 
 static void negate(Vec& vec)
 {

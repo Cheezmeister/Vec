@@ -82,6 +82,7 @@ Input handle_input()
             SDL_Keycode sym = event.key.keysym.sym;
             if (sym == SDLK_ESCAPE) ret.sys.quit = true;
             if (sym == SDLK_f     ) ret.sys.fullscreen = true;
+            if (sym == SDLK_g     ) ret.sys.glowtoggle = true;
             if (sym == SDLK_LSHIFT) ret.auxpoop = true;
             if (sym == SDLK_r     ) ret.auxshoot = true;
         }

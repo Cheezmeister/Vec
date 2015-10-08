@@ -1,14 +1,15 @@
 #include <cmath>
 #include "vec.h"
 
-using namespace std;
+/* using namespace std; */
+using namespace bml;
 
 namespace game {
 
 // TODO cleanup this initialization
 struct _GameParams {
-    float movespeed,  squarespeed, mousemovespeed, rotspeed, drag, bulletdrag, bulletspeed, enemyspeed, hitbox, squaregrowth, squaregravity, squaredecay;
-} params = {   0.005,        0.01,       20.0,            6,  0.9,      0.97,          0.03, 0.01,       0.005, 1.01,        0.02, 0.995 };
+    float movespeed,  playersize, squarespeed, mousemovespeed, rotspeed, drag, bulletdrag, bulletspeed, enemyspeed, hitbox, squaregrowth, squaregravity, squaredecay;
+} params = {   0.005,        0.2,  0.01,       20.0,            6,  0.9,      0.97,          0.03, 0.01,       0.005, 1.01,        0.04, 0.995 };
 
 void collide(GameState& state, const GameState& previousState);
 void add_entity(GameState& state, Entity& e);
@@ -16,9 +17,26 @@ void attract_entity(GameState& state, Entity& e);
 void destroy_entity(GameState& state, Entity& e);
 void spawn_enemies(GameState& state);
 
-float mag_squared(const bml::Vec& vec)
+float mag_squared(const Vec& vec)
 {
     return vec.x * vec.x + vec.y * vec.y;
+}
+
+float check_segment_intersection(Vec p, Vec q, Vec r, Vec s)
+{
+    float rs = cross(r, s);
+    if (rs != 0)
+    {
+      Vec p_q = q - p;
+      float t = cross(p_q, s) / rs;
+      float u = cross(p_q, r) / rs;
+      Vec ret = {t, u};
+      if (t > 0 && t < 1 && u > 0 && u < 1) //intersected top
+      {
+          return t;
+      }
+    }
+    return -1;
 }
 
 int entity_count(const GameState& state)
@@ -32,9 +50,9 @@ int entity_count(const GameState& state)
 
 void init(GameState& state)
 {
-    state.player.size = 1;
+    state.player.size = params.playersize;
     state.player.type = E_TRIANGLE;
-    state.square.size = 1;
+    state.square.size = params.playersize;
     spawn_enemies(state);
 }
 
@@ -109,7 +127,7 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
 
     // Update player (TODO: implement real polar movement)
     float r = state.player.rotation;
-    bml::Vec t = {
+    Vec t = {
         thrust * cos(r) + sidethrust * sin(r),
         thrust * sin(r) - sidethrust * cos(r)
     };
@@ -188,13 +206,13 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
 // (Re)spawn enemies
 void spawn_enemies(GameState& state)
 {
-    int count = min(state.player.killcount + 1, MAX_ENEMIES);
+    int count = minimum(state.player.killcount + 1, MAX_ENEMIES);
     for (int i = 0; i < count; ++i)
     {
         Entity e = {0};
         e.type = E_ENEMY;
-        float mag = bml::normrand() / 4.0 + 0.75;
-        float angle = bml::normrand() * M_PI * 2;
+        float mag = normrand() / 4.0 + 0.75;
+        float angle = normrand() * M_PI * 2;
         e.pos.x = mag * cos(angle);
         e.pos.y = mag * sin(angle);
         e.vel = e.pos * 0.5;
@@ -207,12 +225,12 @@ void spawn_enemies(GameState& state)
 
 bool check_square_collision(GameState::_Square& square, Entity& e)
 {
-    bml::Vec offset = e.pos - square.pos;
-    float sz = square.size * 0.2;
-    if (mag_squared(offset) < sz)
-    if (abs(offset.x) < sz / sqrt(2))
-    if (abs(offset.y) < sz / sqrt(2))
-    return true;
+    Vec offset = e.pos - square.pos;
+    float sz = square.size / 2;
+    if (fabs(offset.x) < sz && fabs(offset.y) < sz)
+    {
+      return true;
+    }
 
     return false;
 }
@@ -255,7 +273,7 @@ void add_entity(GameState& state, Entity& e)
 
 void destroy_entity(GameState& state, Entity& e)
 {
-    if (e.life == 0) bml::warn("Killing dead ent\n");
+    if (e.life == 0) warn("Killing dead ent\n");
 
     e.life = 0;
 
@@ -279,8 +297,8 @@ void destroy_entity(GameState& state, Entity& e)
             Entity xp = {0};
             xp.type = E_XPCHUNK;
             xp.pos = e.pos;
-            xp.vel.x = e.vel.x + bml::normrand() * 0.5;
-            xp.vel.y = e.vel.y + bml::normrand() * 0.5;
+            xp.vel.x = e.vel.x + normrand() * 0.5;
+            xp.vel.y = e.vel.y + normrand() * 0.5;
             xp.life = 1;
             xp.hue = e.hue;
             add_entity(state, xp);
@@ -291,7 +309,7 @@ void destroy_entity(GameState& state, Entity& e)
     {
         spawn_enemies(state);
         state.player.killcount = 0;
-        state.player.size = 1;
+        state.player.size = params.playersize;
     }
 }
 
@@ -357,7 +375,7 @@ void collide(GameState& state, const GameState& previousState)
         // skip dead ents
         if (e.life <= 0) continue;
 
-        // collide ents with square TODO refactor and fix 0.2 scale wackness
+        // collide ents with square
         if (check_square_collision(state.square, e))
         {
             if (e.type == E_BULLET) // bullets are absorbed
@@ -378,6 +396,40 @@ void collide(GameState& state, const GameState& previousState)
             {
                 e.vel = -e.vel;
                 bml::negate(e.vel);
+            }
+            if (e.type == E_XPCHUNK)
+            {
+                // Check top intersection
+                float length = state.square.size;
+                Vec p = e.pos - e.vel;
+                Vec r = e.vel;
+                Vec qtop = {state.square.pos.x - length / 2, state.square.pos.y + length / 2};
+                Vec qbottom = {state.square.pos.x + length / 2, state.square.pos.y - length / 2};
+                Vec sx = UNIT_X * length;
+                Vec sy = UNIT_Y * length;
+
+                float t = -1;
+                if ((t = check_segment_intersection(p, qtop, r, sx)) > 0)
+                {
+                    e.vel.y = -e.vel.y;
+                    e.pos.y += e.vel.y * t * 2 * params.enemyspeed;
+                }
+                else if ((t = check_segment_intersection(p, qtop, r, -sy)) > 0)
+                {
+                    e.vel.x = -e.vel.x;
+                    e.pos.x += e.vel.x * t * 2 * params.enemyspeed;
+                }
+                else if ((t = check_segment_intersection(p, qbottom, r, -sx)) > 0)
+                {
+                    e.vel.y = -e.vel.y;
+                    e.pos.y += e.vel.y * t * 2 * params.enemyspeed;
+                }
+                else if ((t = check_segment_intersection(p, qbottom, r, sy)) > 0)
+                {
+                    e.vel.x = -e.vel.x;
+                    e.pos.x += e.vel.x * t * 2 * params.enemyspeed;
+                }
+
             }
 
         }
@@ -407,9 +459,9 @@ void attract_entity(GameState& state, Entity& e)
 {
     if (state.square.attract)
     {
-        bml::Vec offset = e.pos - state.square.pos;
+        Vec offset = e.pos - state.square.pos;
         e.pos -= offset * params.squaregravity;
-        e.vel -= 0.01 * offset * params.squaregravity;
+        e.vel -= offset * params.squaregravity;
     }
 }
 
