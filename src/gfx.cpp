@@ -103,10 +103,12 @@ typedef struct _FBO {
 
 typedef struct _RenderState {
     struct _Shaders {
-        GLuint enemy;
         GLuint player;
         GLuint square;
         GLuint reticle;
+        GLuint meter;
+
+        GLuint enemy;
         GLuint turd;
         GLuint viewport;
         GLuint nova;
@@ -358,6 +360,11 @@ void init()
                      (GL_VERTEX_SHADER, GLSL_VERSION
 #include "noop.vs"
                      );
+    GLuint vs_stretch = arcsynthesis::CreateShader
+                      (GL_VERTEX_SHADER, GLSL_VERSION
+#include "stretch.vs"
+                      );
+
     GLuint vs_pulse = arcsynthesis::CreateShader
                       (GL_VERTEX_SHADER, GLSL_VERSION
 #include "pulse.vs"
@@ -390,6 +397,11 @@ void init()
                       (GL_FRAGMENT_SHADER, GLSL_VERSION
 #include "swirl.fs"
                       );
+    GLuint fs_meter = arcsynthesis::CreateShader
+                      (GL_FRAGMENT_SHADER, GLSL_VERSION
+#include "meter.fs"
+                      );
+
 
 
     // Set up VBO
@@ -412,6 +424,7 @@ void init()
     renderstate.shaders.player = make_shader(vs_pulse, fs_scintillate);
     renderstate.shaders.square = make_shader(vs_pulse, fs_scintillate);
     renderstate.shaders.reticle = make_shader(vs_pulse, fs_scintillate);
+    renderstate.shaders.meter = make_shader(vs_stretch, fs_meter);
 
     renderstate.shaders.enemy = make_shader(vs_wiggle, fs_pulse);
     renderstate.shaders.turd = make_shader(vs_pulse, fs_scintillate);
@@ -497,6 +510,15 @@ void draw_reticle(const RenderArgs& args)
     draw_array(renderstate.vbo.reticle);
 }
 
+void draw_life_meter(const RenderArgs& args)
+{
+    GLuint shader = args.rs.shaders.meter;
+    glUseProgram(shader);
+    set_uniform(shader, "percent", args.gs.player.life);
+    set_uniform(shader, "ticks", args.ticks);
+    draw_array(args.rs.vbo.viewport, GL_QUADS);
+}
+
 void draw_entities(const RenderArgs& args)
 {
     RS renderstate = args.rs;
@@ -579,9 +601,10 @@ void draw_entities(const RenderArgs& args)
 void draw_glowy_things(const RenderArgs& args)
 {
     // Render "player" items
-    draw_triangle(args);
     draw_square(args);
+    draw_triangle(args);
     draw_reticle(args);
+    draw_life_meter(args);
 
 }
 

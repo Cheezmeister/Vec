@@ -14,6 +14,7 @@ struct _GameParams {
 void collide(GameState& state, const GameState& previousState);
 void add_entity(GameState& state, Entity& e);
 void attract_entity(GameState& state, Entity& e);
+bool spend_life(GameState& state, float cost);
 void destroy_entity(GameState& state, Entity& e);
 void spawn_enemies(GameState& state);
 
@@ -51,6 +52,7 @@ int entity_count(const GameState& state)
 void init(GameState& state)
 {
     state.player.size = params.playersize;
+    state.player.life = 1;
     state.player.type = E_TRIANGLE;
     state.square.size = params.playersize;
     spawn_enemies(state);
@@ -84,6 +86,7 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
     // Shooting
     state.player.cooldown -= (float)state.dticks;
     if (input.shoot && state.player.cooldown <= 0)
+    if (spend_life(state, 0.01))
     {
         Entity b = {0};
         b.life = 1.0;
@@ -94,6 +97,7 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
         state.player.cooldown += 60000.0 / (4 * beats_per_minute(state));
     }
     if (input.auxshoot)
+    if (spend_life(state, 0.1))
     {
         Entity b = {0};
         b.life = 1.0;
@@ -106,6 +110,7 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
 
     // Pooping
     if (input.poop)
+    if (spend_life(state, 0.01))
     {
         Entity t = {0};
         t.type = E_TURD;
@@ -115,6 +120,7 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
         add_entity(state, t);
     }
     if (input.auxpoop)
+    if (spend_life(state, 0.1))
     {
         Entity t = {0};
         t.type = E_NOVA;
@@ -135,6 +141,10 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
     state.player.vel += t;
     state.player.pos += state.player.vel;
     state.player.vel = state.player.vel * params.drag;
+    if (state.player.life < 1.0)
+    {
+        state.player.life += 0.001;
+    }
 
     float phase = ticks / 1000.0 * beats_per_minute(state) / pow(2, 10);
     phase -= floor(phase); // keep phase between 0-1
@@ -159,8 +169,6 @@ void update(GameState& state, u32 ticks, bool debug, const Input& input)
             attract_entity(state, e);
         case E_ROCKET:
             e.life -= 0.002;
-            if (e.life < 0.95)
-                e.vel *= params.bulletdrag;
             e.pos += e.vel * params.bulletspeed;
             if (e.pos.x > 1 || e.pos.x < -1 || e.pos.y > 1 || e.pos.y < -1)
                 destroy_entity(state, e);
@@ -440,6 +448,7 @@ void collide(GameState& state, const GameState& previousState)
             if (e.type == E_XPCHUNK)
             {
                 state.player.size *= 1.05;
+                state.player.life += 0.05;
                 destroy_entity(state, e);
             }
 
@@ -449,10 +458,20 @@ void collide(GameState& state, const GameState& previousState)
                 if (state.player.size <= 1)
                     ;//state.player.size -= 0.1;
                 else
+                {
                     state.player.size *= 0.5;
+                    state.player.life *= 0.5;
+                }
             }
         }
     }
+}
+
+bool spend_life(GameState& state, float cost)
+{
+    if (state.player.life < cost) return false;
+    state.player.life -= cost;
+    return true;
 }
 
 void attract_entity(GameState& state, Entity& e)
